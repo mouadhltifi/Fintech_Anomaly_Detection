@@ -1,0 +1,1223 @@
+NOTEBOOK STRUCTURE ANALYSIS:
+Total cells: 90
+Code cells: 70
+Markdown cells: 20
+
+NOTEBOOK SECTIONS:
+Section 1: # Financial Crisis Early Warning System
+
+## Project Motivation
+
+Financial markets, in the medium to long term, tend to generate positive risk premia and positive real returns. However, they periodically experience **crises** when asset returns deviate significantly from these principles.
+
+In market terminology:
+- **Risk-on** situations: Investors are willing to take risks, bidding up prices of risky assets
+- **Risk-off** situations: Investors become risk-averse, selling risky assets and moving to safer investments
+
+Financial institutions want to detect these regime changes as early as possible to protect portfolios, outperform the market, and maintain reputation.
+
+## Our Approach
+
+We're using Data Science to develop an Early Warning System based on anomaly detection:
+- **Risk-on periods** → Normal market conditions
+- **Risk-off periods** → Anomalous market conditions
+
+This project will use machine learning to identify financial anomalies in real-time, providing early warnings of potential market crises.
+Section 2: # Section 1: Introduction & Dataset Overview
+Section 8: ## Dataset Features Overview
+
+Our dataset contains 43 financial indicators across several categories:
+
+1. **Market Indices**: VIX, MSCI country indices
+2. **Commodities**: Gold, Oil, Commodity indices
+3. **Currencies**: Dollar index, JPY, GBP
+4. **Bond Yields**: US, German, Italian, UK, Japanese government bonds
+5. **Interest Rates**: LIBOR, EONIA
+6. **Bond Indices**: Corporate, High Yield, MBS, Emerging Markets
+7. **Economic Indicators**: Baltic Dry Index, Economic surprise indices
+
+The target variable **Y** indicates risk-off periods (1) versus normal periods (0).
+
+## Next Steps
+
+In the following sections, we'll:
+1. Perform detailed exploratory analysis of these indicators
+2. Apply advanced time series analysis techniques
+3. Engineer features that capture early warning signals
+4. Develop and evaluate anomaly detection models
+Section 9: # Section 2: Data Exploration
+
+# Data Exploration
+
+In this section, we'll explore the financial indicators in our dataset to understand:
+- The statistical properties of each feature
+- How indicators behave during normal versus crisis periods
+- Correlations between different financial variables
+- Changes in distributions before and during crises
+- Patterns that emerge as markets transition from normal to crisis states
+Section 16: ## Key Insights from Data Exploration
+
+Our exploratory data analysis reveals several important patterns:
+
+1. **Volatility Indicators**: The VIX and other volatility measures show significant increases during crisis periods, often beginning to rise in pre-crisis periods.
+
+2. **Equity Markets**: Stock indices tend to decline during crises, with certain markets (emerging markets in particular) showing larger drawdowns.
+
+3. **Fixed Income**: Bond yields display varying behavior based on their role as safe haven assets versus risk assets. US Treasuries often see yield declines during crises as investors seek safety.
+
+4. **Correlations**: The correlation structure between assets changes substantially during crises, with increased correlations across equity markets (contagion effect).
+
+5. **Early Warning Indicators**: Several indicators show significant deviations from normal levels in the pre-crisis periods, potentially offering early warning signals.
+
+6. **Crisis Characteristics**: Financial crises show diverse patterns in terms of duration, severity, and the specific indicators that lead the downturn.
+
+These insights will guide our feature engineering process as we develop more sophisticated indicators for our early warning system.
+Section 17: # Section 3: Temporal Decomposition & Spectral Analysis
+
+# Temporal Decomposition & Spectral Analysis
+
+In this section, we'll apply advanced time series analysis techniques to understand the underlying structures in our financial data:
+
+1. **Temporal Decomposition**: Separating time series into trend, seasonality, and residual components
+2. **Wavelet Analysis**: Identifying time-varying frequency patterns across different scales
+3. **Spectral Analysis**: Examining frequency domain characteristics
+4. **Rolling Window Statistics**: Analyzing statistical properties over time
+
+These techniques can help identify subtle patterns and early warning signals that may not be visible through standard analysis.
+Section 25: ## Key Findings from Temporal Decomposition & Spectral Analysis
+
+Our advanced time series analysis has revealed several important patterns:
+
+1. **Trend-Cycle Components**: The trend components of financial indicators often show significant shifts before and during crisis periods, with market indices typically exhibiting downward trends during crises while safe-haven assets like gold show upward trends.
+
+2. **Seasonality**: While financial markets do exhibit some seasonal patterns, these components remain relatively stable across normal and crisis periods, suggesting that crises are not driven by seasonal factors.
+
+3. **Residual Volatility**: The residual components show increased volatility during crisis periods, indicating greater market uncertainty and potentially more chaotic behavior.
+
+4. **Wavelet Analysis**: Scalograms reveal changes in frequency patterns during crises, with higher-frequency fluctuations becoming more dominant—this increased "market noise" can serve as a warning signal.
+
+5. **Spectral Density Changes**: The power spectral density during crisis periods shows a shift toward higher-frequency components, confirming increased short-term fluctuations during market stress.
+
+6. **Statistical Properties Across Market States**:
+   - **Standard Deviation** typically increases before and during crises
+   - **Skewness** often becomes more negative before crises, indicating increased downside risk
+   - **Kurtosis** rises during crisis periods, reflecting more extreme market moves
+   - **Autocorrelation** tends to increase before crises, suggesting stronger trends and momentum
+
+These findings align with the "critical slowing down" phenomenon observed in complex systems approaching critical transitions. Financial markets often show increased autocorrelation, higher volatility, and shifts in frequency components as they approach crisis states.
+
+These characteristics will be valuable inputs for our feature engineering process and crisis detection models.
+Section 26: # Section 4: Basic Feature Engineering
+
+# Basic Feature Engineering
+
+In this section, we'll create fundamental financial indicators that capture important market relationships. These engineered features represent established financial concepts that often signal changes in market regimes.
+
+We'll focus on five categories of features:
+
+1. **Yield Curve Features**: Term spreads between short and long-term rates across different markets
+2. **Volatility Measures**: Rolling standard deviations at different windows and volatility ratios
+3. **Momentum Indicators**: Rate of change metrics across multiple timeframes
+4. **Cross-Asset Relationships**: Correlations between equities, bonds, and commodities
+5. **Market Stress Indicators**: Liquidity measures, credit spreads, and financial conditions indices
+Section 34: ## Key Insights from Basic Feature Engineering
+
+Our feature engineering process has created several powerful indicators that capture financial market relationships:
+
+### 1. Yield Curve Features
+- **Yield curve slopes** show strong negative correlation with crises, confirming the predictive power of yield curve inversions
+- **Cross-country spreads**, particularly the Italian-German spread, widen significantly during crisis periods, indicating stress in European sovereign debt markets
+- **Normalized yield measures** (Z-scores) provide context by comparing current slopes to their historical norms
+
+### 2. Volatility Measures
+- **Volatility ratios** (short-term vs. long-term) increase sharply at crisis onset, suggesting accelerating market uncertainty
+- **VIX vs. realized volatility** spreads widen during periods of market stress, indicating heightened fear
+- **Cross-asset volatility relationships** shift during crises, with equity volatility typically rising relative to other assets
+
+### 3. Momentum Indicators
+- **Rate of change** metrics often turn negative before and during crises
+- **Moving average crossovers** show transitions from bullish to bearish market regimes
+- **RSI (Relative Strength Index)** tends to drop below key thresholds during market stress
+- **Bearish divergence** signals (price making new highs while momentum weakens) sometimes precede market downturns
+
+### 4. Cross-Asset Relationships
+- **Equity-bond correlation** often turns negative during crises as the "flight to quality" effect strengthens
+- **Gold/equity ratio** increases during risk-off periods as investors seek safe-haven assets
+- **Credit spread** metrics widen significantly during stress periods
+- **Cross-market correlations** tend to increase during crises, indicating contagion effects
+
+### 5. Market Stress Indicators
+- Our **composite financial stress index** captures multiple dimensions of market stress
+- **TED spread** widens during periods of credit stress
+- **Extreme indicator counts** rise before and during crisis periods
+- **Percentage of negative weeks** increases substantially during downturns
+
+These engineered features provide a rich set of indicators for our early warning system. The most powerful predictors appear to be those related to yield curves, volatility regimes, and cross-asset correlations.
+Section 35: # Section 5: Multi-timeframe Relative Changes
+
+# Multi-timeframe Relative Changes
+
+In this section, we'll implement a sophisticated approach to capturing market dynamics across different time horizons. By measuring how indicators change over various timeframes, we can detect both fast-moving market reactions and slow-building systemic risks.
+
+We'll focus on these techniques:
+
+1. **Log returns** for strictly positive indicators across multiple timeframes
+2. **Differences and z-scores** for indicators that can have negative values
+3. **Acceleration metrics** to measure second-order changes (change of change)
+4. **Threshold crossings** to identify unusual movements across multiple indicators
+
+This multi-timeframe approach will help us detect different types of market stress that develop at varying speeds.
+...
+
+KEY IMPORTS (first 10):
+# Create time series plots for key indicators with crisis periods highlighted
+def plot_timeseries_with_crises(df, columns, n_cols=1, figsize=(18, 15)):
+    n_rows = len(columns)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
+    
+    if n_rows == 1:
+        axes = [axes]
+    
+    for i, col in enumerate(columns):
+        # Plot the time series
+        axes[i].plot(df['Data'], df[col], label=col, color='blue')
+        axes[i].set_title(f'{col} Over Time')
+        axes[i].set_ylabel(col)
+        
+        # Highlight crisis periods
+        crisis_periods = df[df['Y'] == 1]['Data'].reset_index(drop=True)
+        for j in range(len(crisis_periods)):
+            if j == 0 or (crisis_periods[j] - crisis_periods[j-1]).days > 7:  # Start of a crisis
+                crisis_start = crisis_periods[j]
+                crisis_end = crisis_periods[j]
+                # Find the end of this crisis
+                while j + 1 < len(crisis_periods) and (crisis_periods[j+1] - crisis_periods[j]).days <= 7:
+                    j += 1
+                    crisis_end = crisis_periods[j]
+                
+                # Highlight the crisis period
+                axes[i].axvspan(crisis_start, crisis_end, alpha=0.2, color='red')
+    
+    plt.tight_layout()
+    plt.show()
+
+# Select a few important indicators to visualize over time
+key_indicators = ['VIX', 'MXUS', 'GT10', 'USGG2YR', 'XAUBGNL', 'DXY']
+plot_timeseries_with_crises(df, key_indicators)
+# Financial Crisis Early Warning System
+# An Anomaly Detection Approach for Financial Markets
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
+%matplotlib inline
+
+# Set styling for plots
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette("cool")
+plt.rcParams['figure.figsize'] = (12, 7)
+plt.rcParams['font.size'] = 12
+# 9. Feature importance analysis for best model
+
+def analyze_feature_importance(results, model_name):
+    """Analyze feature importance for the best model"""
+    
+    # Extract model name parts
+    model_parts = model_name.split('_')
+    model_type = model_parts[0]
+    feature_set = '_'.join(model_parts[1:])
+    
+    # Check if feature set exists
+    if feature_set not in feature_sets:
+        print(f"Feature set {feature_set} not found")
+        return
+    
+    # Get feature names
+    feature_names = feature_sets[feature_set].drop(columns=['Y']).columns
+    
+    # Check if model supports feature importance
+    importance_supported = model_type in ['RandomForest', 'GradientBoosting', 'XGBoost', 'LightGBM']
+    
+    if not importance_supported:
+        print(f"Feature importance not directly available for {model_type}")
+        
+        # For logistic regression, we can check coefficients
+        if model_type == 'LogisticRegression':
+            # Create and train a new model on the full dataset
+            X = feature_sets[feature_set].drop(columns=['Y'])
+            y = feature_sets[feature_set]['Y']
+            
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
+            
+            model = LogisticRegression(max_iter=1000, C=0.1, class_weight='balanced', random_state=42)
+            model.fit(X_scaled, y)
+            
+            # Get coefficients
+            coefs = pd.DataFrame({
+                'Feature': feature_names,
+                'Coefficient': model.coef_[0]
+            })
+            coefs['Abs_Coefficient'] = coefs['Coefficient'].abs()
+            coefs = coefs.sort_values('Abs_Coefficient', ascending=False)
+            
+            # Plot coefficients
+            plt.figure(figsize=(12, 8))
+            sns.barplot(x='Coefficient', y='Feature', data=coefs.head(15))
+            plt.title('Top 15 Features by Coefficient Magnitude')
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            plt.show()
+            
+            return
+        elif model_type == 'SVM':
+            print("For SVM, feature importance can be approximated using permutation importance")
+            # Would require additional implementation
+            return
+        elif model_type == 'MLP':
+            print("Neural network feature importance is not straightforward to interpret")
+            return
+    
+    # For tree-based models, create and train a new model on the full dataset
+    X = feature_sets[feature_set].drop(columns=['Y'])
+    y = feature_sets[feature_set]['Y']
+    
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
+    
+    if model_type == 'RandomForest':
+        model = RandomForestClassifier(n_estimators=100, max_depth=10, class_weight='balanced', random_state=42)
+    elif model_type == 'GradientBoosting':
+        model = GradientBoostingClassifier(n_estimators=100, max_depth=5, random_state=42)
+    elif model_type == 'XGBoost':
+        model = xgb.XGBClassifier(n_estimators=100, max_depth=5, learning_rate=0.1,
+                                objective='binary:logistic', scale_pos_weight=5, random_state=42)
+    elif model_type == 'LightGBM':
+        model = lgb.LGBMClassifier(n_estimators=100, num_leaves=31, learning_rate=0.1,
+                                  objective='binary', class_weight='balanced', random_state=42)
+    
+    model.fit(X_scaled, y)
+    
+    # Get feature importance
+    if hasattr(model, 'feature_importances_'):
+        importances = pd.DataFrame({
+            'Feature': feature_names,
+            'Importance': model.feature_importances_
+        })
+        importances = importances.sort_values('Importance', ascending=False)
+        
+        # Plot feature importance
+        plt.figure(figsize=(12, 8))
+        sns.barplot(x='Importance', y='Feature', data=importances.head(15))
+        plt.title(f'Top 15 Features by Importance - {model_type}')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        plt.show()
+        
+        print("\nTop 15 features by importance:")
+        print(importances.head(15))
+    else:
+        print(f"Feature importance not available for this model")
+
+# Analyze feature importance for best model
+analyze_feature_importance(all_results, best_f1_model)
+# 5. Validate cross-asset correlations on a subset of indicators
+
+def validate_correlations_subset(original_df, interpolated_df, n_indicators=5):
+    """Validate cross-asset correlations using a subset of indicators"""
+    # Select important indicators that exist in both dataframes
+    key_indicators = ['MXUS', 'VIX', 'GT10', 'USGG2YR', 'DXY', 'XAUBGNL', 'MXEU', 'MXJP']
+    available_indicators = [col for col in key_indicators 
+                            if col in original_df.columns and col in interpolated_df.columns]
+    
+    # Take the top n available indicators
+    selected_indicators = available_indicators[:min(n_indicators, len(available_indicators))]
+    
+    if len(selected_indicators) < 2:
+        print("Not enough common indicators to calculate correlations")
+        return None, None, None
+    
+    print(f"Validating correlations for {len(selected_indicators)} indicators: {selected_indicators}")
+    
+    # Calculate correlation matrices for original and interpolated data
+    # Use only dates from the original dataframe
+    original_dates = original_df.index
+    
+    original_data = original_df[selected_indicators].loc[original_dates].dropna()
+    interp_data = interpolated_df[selected_indicators].loc[original_dates].dropna()
+    
+    # Calculate correlation matrices
+    original_corr = original_data.corr()
+    interp_corr = interp_data.corr()
+    
+    # Calculate correlation difference
+    corr_diff = original_corr - interp_corr
+    
+    return original_corr, interp_corr, corr_diff
+
+# Validate cross-correlations for a subset of indicators
+original_corr, interp_corr, corr_diff = validate_correlations_subset(df_multi, interpolated_df)
+
+if original_corr is not None:
+    # Plot the correlation matrices
+    plt.figure(figsize=(20, 6))
+    
+    # Original correlation matrix
+    plt.subplot(1, 3, 1)
+    sns.heatmap(original_corr, annot=True, cmap='coolwarm', center=0, fmt='.2f', vmin=-1, vmax=1)
+    plt.title('Original Correlation Matrix')
+    
+    # Interpolated correlation matrix
+    plt.subplot(1, 3, 2)
+    sns.heatmap(interp_corr, annot=True, cmap='coolwarm', center=0, fmt='.2f', vmin=-1, vmax=1)
+    plt.title('Interpolated Correlation Matrix')
+    
+    # Correlation difference
+    plt.subplot(1, 3, 3)
+    sns.heatmap(corr_diff, annot=True, cmap='coolwarm', center=0, fmt='.2f', vmin=-0.5, vmax=0.5)
+    plt.title('Correlation Difference (Original - Interpolated)')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Calculate summary statistics for correlation preservation
+    corr_diff_abs = corr_diff.abs()
+    avg_corr_diff = corr_diff_abs.values[np.triu_indices_from(corr_diff_abs.values, k=1)].mean()
+    max_corr_diff = corr_diff_abs.values[np.triu_indices_from(corr_diff_abs.values, k=1)].max()
+    
+    print(f"Average absolute correlation difference: {avg_corr_diff:.4f}")
+    print(f"Maximum absolute correlation difference: {max_corr_diff:.4f}")
+    
+    if avg_corr_diff < 0.1:
+        print("Cross-asset correlations are well preserved by the interpolation.")
+    else:
+        print("There are some discrepancies in cross-asset correlations. Consider using a more sophisticated multivariate model.")
+else:
+    print("Skipping correlation analysis due to insufficient common indicators.")
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import (precision_score, recall_score, f1_score, roc_auc_score,
+                           confusion_matrix, classification_report, precision_recall_curve)
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set random seed for reproducibility
+np.random.seed(42)
+# 7. Detailed analysis of best-performing models
+
+# Get best model for each metric
+best_f1_model = summary_results.loc[summary_results['F1_Score'].idxmax(), 'Model']
+best_auc_model = summary_results.loc[summary_results['ROC_AUC'].idxmax(), 'Model']
+best_recall_model = summary_results.loc[summary_results['Recall'].idxmax(), 'Model']
+
+print(f"\nBest model by F1 Score: {best_f1_model}")
+print(f"Best model by ROC AUC: {best_auc_model}")
+print(f"Best model by Recall: {best_recall_model}")
+
+# Get feature set and model type from the best model
+best_model_parts = best_f1_model.split('_')
+best_model_type = best_model_parts[0]
+best_feature_set = '_'.join(best_model_parts[1:])
+
+print(f"\nAnalyzing performance of best model: {best_model_type} with {best_feature_set} features")
+
+# Function to plot ROC curve for best models
+def plot_best_model_curves(results, model_name):
+    """Plot ROC and PR curves for a model across all splits"""
+    
+    # Extract model name parts
+    model_parts = model_name.split('_')
+    model_type = model_parts[0]
+    feature_set = '_'.join(model_parts[1:])
+    
+    plt.figure(figsize=(15, 6))
+    
+    # ROC Curve
+    plt.subplot(1, 2, 1)
+    for feature_set_name, feature_results in results.items():
+        if feature_set == feature_set_name:
+            for split, split_results in feature_results.items():
+                if model_type in split_results:
+                    model_result = split_results[model_type]
+                    # Skip if no probability predictions
+                    if model_result['y_prob'] is None:
+                        continue
+                    # Calculate ROC curve
+                    from sklearn.metrics import roc_curve
+                    fpr, tpr, _ = roc_curve(model_result['y_true'], model_result['y_prob'])
+                    plt.plot(fpr, tpr, alpha=0.7, label=f"{split} (AUC={model_result['roc_auc']:.3f})")
+    
+    plt.plot([0, 1], [0, 1], 'k--', alpha=0.3)
+    plt.xlim([0, 1])
+    plt.ylim([0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'ROC Curves - {model_name}')
+    plt.legend(loc='lower right')
+    plt.grid(True, alpha=0.3)
+    
+    # Precision-Recall Curve
+    plt.subplot(1, 2, 2)
+    for feature_set_name, feature_results in results.items():
+        if feature_set == feature_set_name:
+            for split, split_results in feature_results.items():
+                if model_type in split_results:
+                    model_result = split_results[model_type]
+                    # Skip if no probability predictions
+                    if model_result['y_prob'] is None:
+                        continue
+                    # Calculate PR curve
+                    precision, recall, _ = precision_recall_curve(model_result['y_true'], model_result['y_prob'])
+                    plt.plot(recall, precision, alpha=0.7, 
+                             label=f"{split} (AP={model_result['avg_precision']:.3f})")
+    
+    plt.xlim([0, 1])
+    plt.ylim([0, 1.05])
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title(f'Precision-Recall Curves - {model_name}')
+    plt.legend(loc='lower left')
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+
+# Plot curves for best models
+plot_best_model_curves(all_results, best_f1_model)
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import ipywidgets as widgets
+from IPython.display import display
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from statsmodels.tsa.statespace.structural import UnobservedComponents
+from scipy.interpolate import interp1d
+import warnings
+warnings.filterwarnings("ignore")
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, 
+                            roc_auc_score, confusion_matrix, classification_report,
+                            precision_recall_curve, average_precision_score)
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+import xgboost as xgb
+import lightgbm as lgb
+import warnings
+warnings.filterwarnings('ignore')
+
+# Set random seed for reproducibility
+np.random.seed(42)
+# 6. Identify transition periods and compare statistics
+def identify_transition_periods(df):
+    """Identify pre-crisis, crisis, and post-crisis periods"""
+    # Create a copy of the dataframe
+    df_with_periods = df.copy()
+    
+    # Add a column for the period type
+    df_with_periods['period_type'] = 'Normal'
+    
+    # Find the transitions
+    for i in range(4, len(df)):
+        # Pre-crisis (4 weeks before a crisis starts)
+        if df['Y'].iloc[i] == 1 and df['Y'].iloc[i-1] == 0:
+            # Mark the 4 weeks before as pre-crisis
+            for j in range(1, 5):
+                if i-j >= 0:
+                    df_with_periods['period_type'].iloc[i-j] = 'Pre-Crisis'
+        
+        # Post-crisis (4 weeks after a crisis ends)
+        if df['Y'].iloc[i] == 0 and df['Y'].iloc[i-1] == 1:
+            # Mark the 4 weeks after as post-crisis
+            for j in range(0, 4):
+                if i+j < len(df):
+                    df_with_periods['period_type'].iloc[i+j] = 'Post-Crisis'
+    
+    # Mark crisis periods
+    df_with_periods.loc[df['Y'] == 1, 'period_type'] = 'Crisis'
+    
+    return df_with_periods
+
+# Identify transition periods
+df_with_periods = identify_transition_periods(df_ts.reset_index()).set_index('Data')
+
+# Compare statistics across different period types
+from scipy import stats
+
+for indicator in key_indicators:
+    # Calculate statistics for each period type manually
+    period_types = ['Normal', 'Pre-Crisis', 'Crisis', 'Post-Crisis']
+    period_stats = pd.DataFrame(index=period_types, columns=['mean', 'std', 'skew', 'kurt', 'autocorr'])
+    
+    for period in period_types:
+        series = df_with_periods[df_with_periods['period_type'] == period][indicator]
+        if len(series) > 0:
+            period_stats.loc[period, 'mean'] = series.mean()
+            period_stats.loc[period, 'std'] = series.std()
+            period_stats.loc[period, 'skew'] = series.skew()
+            period_stats.loc[period, 'kurt'] = stats.kurtosis(series.dropna())
+            if len(series) > 1:
+                period_stats.loc[period, 'autocorr'] = series.autocorr(1)
+            else:
+                period_stats.loc[period, 'autocorr'] = np.nan
+    
+    # Plot the comparison
+    plt.figure(figsize=(14, 8))
+    
+    # Convert to long format for easier plotting
+    period_stats_melted = period_stats.reset_index().melt(
+        id_vars='index',
+        var_name='Statistic',
+        value_name='Value'
+    )
+    
+    # Create subplots for each statistic
+    stats_to_plot = ['mean', 'std', 'skew', 'kurt', 'autocorr']
+    for i, stat in enumerate(stats_to_plot):
+        plt.subplot(2, 3, i+1)
+        stat_data = period_stats_melted[period_stats_melted['Statistic'] == stat]
+        
+        # Create bar plot
+        sns.barplot(x='index', y='Value', data=stat_data, 
+                   order=['Normal', 'Pre-Crisis', 'Crisis', 'Post-Crisis'],
+                   palette=['green', 'orange', 'red', 'purple'])
+        
+        plt.title(f'{stat.capitalize()} by Market State')
+        plt.xticks(rotation=45)
+        plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.suptitle(f'Statistical Properties Across Market States for {indicator}', fontsize=16, y=1.02)
+    plt.show()
+...
+
+DATAFRAME OPERATIONS (first 5):
+# Load crisis periods from our earlier analysis (if available, or create it now)
+# If you've already run the crisis_detector.py script, you can load the CSV
+try:
+    crisis_df = pd.read_csv('crisis_periods.csv')
+    has_crisis_file = True
+except:
+    # If the file doesn't exist, we'll create a simplified version
+    has_crisis_file = False
+    
+    # Find crisis periods
+    crisis_periods = []
+    current_start = None
+    
+    for i in range(len(df)):
+        # Start of a crisis period
+        if df['Y'].iloc[i] == 1 and (i == 0 or df['Y'].iloc[i-1] == 0):
+            current_start = df['Data'].iloc[i]
+        
+        # End of a crisis period
+        elif df['Y'].iloc[i] == 0 and i > 0 and df['Y'].iloc[i-1] == 1 and current_start is not None:
+            crisis_periods.append((current_start, df['Data'].iloc[i-1]))
+            current_start = None
+    
+    # Handle the case where the last period in the dataset is a crisis
+    if current_start is not None:
+        crisis_periods.append((current_start, df['Data'].iloc[-1]))
+    
+    # Create crisis dataframe
+    crisis_df = pd.DataFrame({
+        'CrisisNumber': range(1, len(crisis_periods) + 1),
+        'StartDate': [start for start, _ in crisis_periods],
+        'EndDate': [end for _, end in crisis_periods],
+        'Duration': [(end - start).days for start, end in crisis_periods]
+    })
+
+# Display crisis periods
+print(f"\nTotal number of crisis periods: {len(crisis_df)}")
+crisis_df.head(10)
+# 2. Analyze decomposition trends before and during crises
+# We'll create a function to extract decomposition components and analyze them by market state
+
+def analyze_decomposition_by_market_state(df_ts, indicator, period=52):
+    """Extract decomposition components and analyze by market state"""
+    # Apply STL decomposition
+    stl = STL(df_ts[indicator], period=period)
+    result = stl.fit()
+    
+    # Create a dataframe with decomposition results
+    decomp_df = pd.DataFrame({
+        'original': df_ts[indicator],
+        'trend': result.trend,
+        'seasonal': result.seasonal,
+        'residual': result.resid,
+        'Y': df_ts['Y']
+    })
+    
+    # Calculate volatility of residuals (rolling window)
+    decomp_df['residual_volatility'] = decomp_df['residual'].rolling(window=12).std()
+    
+    # Compare components by market state
+    normal_data = decomp_df[decomp_df['Y'] == 0]
+    crisis_data = decomp_df[decomp_df['Y'] == 1]
+    
+    # Create comparison dataframes for plotting
+    components = ['original', 'trend', 'seasonal', 'residual', 'residual_volatility']
+    
+    # Plot boxplots comparing components by market state
+    plt.figure(figsize=(15, 10))
+    for i, comp in enumerate(components):
+        plt.subplot(2, 3, i+1)
+        data = pd.DataFrame({
+            'Normal': normal_data[comp],
+            'Crisis': crisis_data[comp]
+        })
+        sns.boxplot(data=data)
+        plt.title(f'{comp.capitalize()} by Market State')
+        plt.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.suptitle(f'Decomposition Analysis for {indicator} by Market State', fontsize=16, y=1.02)
+    plt.show()
+    
+    return decomp_df
+
+# Analyze decompositions for key indicators
+for indicator in key_indicators:
+    decomp_df = analyze_decomposition_by_market_state(df_ts, indicator)
+# 5. Rolling Window Statistics
+# We'll calculate various statistical properties over rolling windows
+
+def calculate_rolling_statistics(df_ts, indicator, windows=[12, 26, 52]):
+    """Calculate rolling statistics for a given indicator"""
+    stats_df = pd.DataFrame(index=df_ts.index)
+    stats_df['original'] = df_ts[indicator]
+    stats_df['Y'] = df_ts['Y']
+    
+    for window in windows:
+        # Rolling mean
+        stats_df[f'mean_{window}w'] = df_ts[indicator].rolling(window=window).mean()
+        
+        # Rolling standard deviation
+        stats_df[f'std_{window}w'] = df_ts[indicator].rolling(window=window).std()
+        
+        # Rolling skewness
+        stats_df[f'skew_{window}w'] = df_ts[indicator].rolling(window=window).skew()
+        
+        # Rolling kurtosis
+        stats_df[f'kurt_{window}w'] = df_ts[indicator].rolling(window=window).kurt()
+        
+        # Rolling autocorrelation (lag 1)
+        rolled = df_ts[indicator].rolling(window=window)
+        stats_df[f'autocorr_{window}w'] = rolled.apply(
+            lambda x: x.autocorr(1) if len(x) > 1 else np.nan)
+    
+    return stats_df
+
+# Calculate rolling statistics for each key indicator
+for indicator in key_indicators:
+    stats_df = calculate_rolling_statistics(df_ts, indicator)
+    
+    # Plot the rolling statistics
+    plt.figure(figsize=(15, 15))
+    
+    # Rolling mean and std
+    plt.subplot(3, 1, 1)
+    plt.plot(stats_df.index, stats_df['original'], label='Original', alpha=0.5)
+    plt.plot(stats_df.index, stats_df['mean_26w'], label='26-week Mean', linewidth=2)
+    plt.fill_between(stats_df.index, 
+                     stats_df['mean_26w'] - stats_df['std_26w'],
+                     stats_df['mean_26w'] + stats_df['std_26w'],
+                     alpha=0.2, label='±1 Std Dev')
+    
+    # Highlight crisis periods
+    crisis_periods = df_ts[df_ts['Y'] == 1].index
+    for date in crisis_periods:
+        plt.axvline(x=date, color='red', alpha=0.2)
+    
+    plt.title(f'Rolling Mean and Standard Deviation for {indicator}')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # Rolling skewness and kurtosis
+    plt.subplot(3, 1, 2)
+    plt.plot(stats_df.index, stats_df['skew_26w'], label='Skewness (26w)', color='green')
+    plt.plot(stats_df.index, stats_df['kurt_26w'], label='Kurtosis (26w)', color='purple')
+    
+    # Highlight crisis periods
+    for date in crisis_periods:
+        plt.axvline(x=date, color='red', alpha=0.2)
+    
+    plt.title(f'Rolling Skewness and Kurtosis for {indicator}')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    # Rolling autocorrelation
+    plt.subplot(3, 1, 3)
+    plt.plot(stats_df.index, stats_df['autocorr_12w'], label='12-week Autocorr', color='blue')
+    plt.plot(stats_df.index, stats_df['autocorr_26w'], label='26-week Autocorr', color='orange')
+    
+    # Highlight crisis periods
+    for date in crisis_periods:
+        plt.axvline(x=date, color='red', alpha=0.2)
+    
+    plt.title(f'Rolling Autocorrelation for {indicator}')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+# 6. Identify transition periods and compare statistics
+def identify_transition_periods(df):
+    """Identify pre-crisis, crisis, and post-crisis periods"""
+    # Create a copy of the dataframe
+    df_with_periods = df.copy()
+    
+    # Add a column for the period type
+    df_with_periods['period_type'] = 'Normal'
+    
+    # Find the transitions
+    for i in range(4, len(df)):
+        # Pre-crisis (4 weeks before a crisis starts)
+        if df['Y'].iloc[i] == 1 and df['Y'].iloc[i-1] == 0:
+            # Mark the 4 weeks before as pre-crisis
+            for j in range(1, 5):
+                if i-j >= 0:
+                    df_with_periods['period_type'].iloc[i-j] = 'Pre-Crisis'
+        
+        # Post-crisis (4 weeks after a crisis ends)
+        if df['Y'].iloc[i] == 0 and df['Y'].iloc[i-1] == 1:
+            # Mark the 4 weeks after as post-crisis
+            for j in range(0, 4):
+                if i+j < len(df):
+                    df_with_periods['period_type'].iloc[i+j] = 'Post-Crisis'
+    
+    # Mark crisis periods
+    df_with_periods.loc[df['Y'] == 1, 'period_type'] = 'Crisis'
+    
+    return df_with_periods
+
+# Identify transition periods
+df_with_periods = identify_transition_periods(df_ts.reset_index()).set_index('Data')
+
+# Compare statistics across different period types
+from scipy import stats
+
+for indicator in key_indicators:
+    # Calculate statistics for each period type manually
+    period_types = ['Normal', 'Pre-Crisis', 'Crisis', 'Post-Crisis']
+    period_stats = pd.DataFrame(index=period_types, columns=['mean', 'std', 'skew', 'kurt', 'autocorr'])
+    
+    for period in period_types:
+        series = df_with_periods[df_with_periods['period_type'] == period][indicator]
+        if len(series) > 0:
+            period_stats.loc[period, 'mean'] = series.mean()
+            period_stats.loc[period, 'std'] = series.std()
+            period_stats.loc[period, 'skew'] = series.skew()
+            period_stats.loc[period, 'kurt'] = stats.kurtosis(series.dropna())
+            if len(series) > 1:
+                period_stats.loc[period, 'autocorr'] = series.autocorr(1)
+            else:
+                period_stats.loc[period, 'autocorr'] = np.nan
+    
+    # Plot the comparison
+    plt.figure(figsize=(14, 8))
+    
+    # Convert to long format for easier plotting
+    period_stats_melted = period_stats.reset_index().melt(
+        id_vars='index',
+        var_name='Statistic',
+        value_name='Value'
+    )
+    
+    # Create subplots for each statistic
+    stats_to_plot = ['mean', 'std', 'skew', 'kurt', 'autocorr']
+    for i, stat in enumerate(stats_to_plot):
+        plt.subplot(2, 3, i+1)
+        stat_data = period_stats_melted[period_stats_melted['Statistic'] == stat]
+        
+        # Create bar plot
+        sns.barplot(x='index', y='Value', data=stat_data, 
+                   order=['Normal', 'Pre-Crisis', 'Crisis', 'Post-Crisis'],
+                   palette=['green', 'orange', 'red', 'purple'])
+        
+        plt.title(f'{stat.capitalize()} by Market State')
+        plt.xticks(rotation=45)
+        plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.suptitle(f'Statistical Properties Across Market States for {indicator}', fontsize=16, y=1.02)
+    plt.show()
+# Load the dataframe with previously engineered features if not already in memory
+try:
+    df_features.head()
+except:
+    df_features = pd.read_csv('engineered_features_basic.csv', index_col='Data', parse_dates=True)
+
+# Display basic information
+print(f"Dataset Shape: {df_features.shape}")
+print(f"Date Range: {df_features.index.min()} to {df_features.index.max()}")
+...
+
+MODEL RELATED CODE (first 5):
+# 1. STL Decomposition - Seasonal-Trend decomposition using LOESS
+# We'll apply this to a few key financial indicators
+
+def apply_stl_decomposition(series, period=52, title=None):
+    """Apply STL decomposition and plot components"""
+    # Apply STL decomposition
+    stl = STL(series, period=period)
+    result = stl.fit()
+    
+    # Plot the decomposition
+    fig, axes = plt.subplots(4, 1, figsize=(14, 10), sharex=True)
+    
+    # Original series
+    axes[0].plot(series.index, series.values)
+    axes[0].set_title('Original Series')
+    
+    # Trend component
+    axes[1].plot(series.index, result.trend)
+    axes[1].set_title('Trend')
+    
+    # Seasonal component
+    axes[2].plot(series.index, result.seasonal)
+    axes[2].set_title('Seasonality')
+    
+    # Residual component
+    axes[3].plot(series.index, result.resid)
+    axes[3].set_title('Residuals')
+    
+    if title:
+        fig.suptitle(title, fontsize=16)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    return result
+
+# Set the index to the date for proper time series plotting
+df_ts = df.set_index('Data')
+
+# Apply STL decomposition to key indicators
+key_indicators = ['VIX', 'MXUS', 'GT10', 'DXY', 'XAUBGNL']
+
+for indicator in key_indicators:
+    result = apply_stl_decomposition(df_ts[indicator], title=f'STL Decomposition for {indicator}')
+# 2. Analyze decomposition trends before and during crises
+# We'll create a function to extract decomposition components and analyze them by market state
+
+def analyze_decomposition_by_market_state(df_ts, indicator, period=52):
+    """Extract decomposition components and analyze by market state"""
+    # Apply STL decomposition
+    stl = STL(df_ts[indicator], period=period)
+    result = stl.fit()
+    
+    # Create a dataframe with decomposition results
+    decomp_df = pd.DataFrame({
+        'original': df_ts[indicator],
+        'trend': result.trend,
+        'seasonal': result.seasonal,
+        'residual': result.resid,
+        'Y': df_ts['Y']
+    })
+    
+    # Calculate volatility of residuals (rolling window)
+    decomp_df['residual_volatility'] = decomp_df['residual'].rolling(window=12).std()
+    
+    # Compare components by market state
+    normal_data = decomp_df[decomp_df['Y'] == 0]
+    crisis_data = decomp_df[decomp_df['Y'] == 1]
+    
+    # Create comparison dataframes for plotting
+    components = ['original', 'trend', 'seasonal', 'residual', 'residual_volatility']
+    
+    # Plot boxplots comparing components by market state
+    plt.figure(figsize=(15, 10))
+    for i, comp in enumerate(components):
+        plt.subplot(2, 3, i+1)
+        data = pd.DataFrame({
+            'Normal': normal_data[comp],
+            'Crisis': crisis_data[comp]
+        })
+        sns.boxplot(data=data)
+        plt.title(f'{comp.capitalize()} by Market State')
+        plt.grid(alpha=0.3)
+    
+    plt.tight_layout()
+    plt.suptitle(f'Decomposition Analysis for {indicator} by Market State', fontsize=16, y=1.02)
+    plt.show()
+    
+    return decomp_df
+
+# Analyze decompositions for key indicators
+for indicator in key_indicators:
+    decomp_df = analyze_decomposition_by_market_state(df_ts, indicator)
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.feature_selection import SelectKBest, f_classif, mutual_info_classif, RFE
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+import warnings
+warnings.filterwarnings("ignore")
+
+# Set random seed for reproducibility
+np.random.seed(42)
+# 3. Statistical feature selection
+
+# Standardize features for better selection
+scaler = StandardScaler()
+X_scaled = pd.DataFrame(scaler.fit_transform(X), columns=X.columns, index=X.index)
+
+# F-statistic based selection
+f_selector = SelectKBest(f_classif, k='all')
+f_selector.fit(X_scaled, y)
+f_scores = pd.DataFrame({'Feature': X.columns, 'F_Score': f_selector.scores_, 'P_Value': f_selector.pvalues_})
+f_scores = f_scores.sort_values('F_Score', ascending=False)
+
+# Mutual Information based selection
+mi_selector = SelectKBest(mutual_info_classif, k='all')
+mi_selector.fit(X_scaled, y)
+mi_scores = pd.DataFrame({'Feature': X.columns, 'MI_Score': mi_selector.scores_})
+mi_scores = mi_scores.sort_values('MI_Score', ascending=False)
+
+# Combine results
+feature_importance = pd.merge(f_scores, mi_scores, on='Feature')
+
+# Display top features
+print("Top 15 features by F-statistic:")
+print(feature_importance[['Feature', 'F_Score', 'P_Value']].head(15))
+print("\nTop 15 features by Mutual Information:")
+print(feature_importance[['Feature', 'MI_Score']].sort_values('MI_Score', ascending=False).head(15))
+
+# Visualize top features by F-Score
+plt.figure(figsize=(12, 8))
+top_f = feature_importance.head(15)
+ax = sns.barplot(x='F_Score', y='Feature', data=top_f)
+plt.title('Top 15 Features by F-Statistic')
+plt.grid(True, alpha=0.3)
+# Add p-value annotations
+for i, row in enumerate(top_f.itertuples()):
+    if row.P_Value < 0.001:
+        sig = '***'
+    elif row.P_Value < 0.01:
+        sig = '**'
+    elif row.P_Value < 0.05:
+        sig = '*'
+    else:
+        sig = 'ns'
+    ax.text(row.F_Score + 1, i, sig)
+plt.tight_layout()
+plt.show()
+
+# Visualize top features by Mutual Information
+plt.figure(figsize=(12, 8))
+top_mi = feature_importance.sort_values('MI_Score', ascending=False).head(15)
+sns.barplot(x='MI_Score', y='Feature', data=top_mi)
+plt.title('Top 15 Features by Mutual Information')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+# 4. Tree-based feature importance (optimized for high dimensionality)
+
+# Use top 100 features from statistical methods to make this tractable
+top_statistical_subset = feature_importance.head(100)['Feature'].tolist()
+X_subset = X_scaled[top_statistical_subset]
+print(f"Using top 100 statistical features for Random Forest importance (out of {X.shape[1]} total features)")
+
+# Train a smaller, constrained Random Forest model
+rf = RandomForestClassifier(n_estimators=50, max_depth=10, random_state=42, n_jobs=-1)
+rf.fit(X_subset, y)
+
+# Extract feature importances
+rf_importances = pd.DataFrame({
+    'Feature': X_subset.columns,
+    'Importance': rf.feature_importances_
+})
+rf_importances = rf_importances.sort_values('Importance', ascending=False)
+
+# Display and visualize Random Forest importances
+print("Top 15 features by Random Forest importance (from statistical subset):")
+print(rf_importances.head(15))
+
+plt.figure(figsize=(12, 8))
+sns.barplot(x='Importance', y='Feature', data=rf_importances.head(15))
+plt.title('Top Features by Random Forest Importance')
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Skip full RFE - use a simplified version with preselected features and larger step size
+print("\nUsing simplified feature elimination due to high dimensionality")
+mini_rfe = RFE(estimator=RandomForestClassifier(n_estimators=25, random_state=42), 
+               n_features_to_select=15, step=5)
+mini_rfe.fit(X_subset, y)
+
+# Store RFE results
+rfe_selected = pd.DataFrame({
+    'Feature': X_subset.columns,
+    'Selected': mini_rfe.support_,
+    'Ranking': mini_rfe.ranking_
+})
+rfe_selected = rfe_selected.sort_values('Ranking')
+
+print("\nTop features by simplified RFE (from statistical subset):")
+print(rfe_selected[rfe_selected['Selected']].sort_values('Ranking'))
+...
+
+VISUALIZATIONS (first 5):
+# Financial Crisis Early Warning System
+# An Anomaly Detection Approach for Financial Markets
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings("ignore")
+%matplotlib inline
+
+# Set styling for plots
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette("cool")
+plt.rcParams['figure.figsize'] = (12, 7)
+plt.rcParams['font.size'] = 12
+# Visualize crisis periods over time
+plt.figure(figsize=(15, 6))
+
+# Create a timeline of crisis periods
+for idx, row in crisis_df.iterrows():
+    plt.hlines(y=1, xmin=row['StartDate'], xmax=row['EndDate'], colors='red', linewidth=6, alpha=0.7)
+
+# Add markers for crisis start and end
+plt.scatter(crisis_df['StartDate'], [1] * len(crisis_df), color='darkred', s=50, label='Crisis Start')
+plt.scatter(crisis_df['EndDate'], [1] * len(crisis_df), color='blue', s=50, label='Crisis End')
+
+# Format the plot
+plt.yticks([])
+plt.title('Timeline of Financial Crisis Periods (2000-2021)', fontsize=16)
+plt.xlabel('Year', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+# Plot distribution of crisis durations
+plt.figure(figsize=(12, 6))
+sns.histplot(crisis_df['Duration'], bins=15, kde=True)
+plt.title('Distribution of Crisis Period Durations', fontsize=16)
+plt.xlabel('Duration (Days)', fontsize=14)
+plt.ylabel('Frequency', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+# Analyze crisis frequency by year
+df['Year'] = df['Data'].dt.year
+crisis_by_year = df.groupby('Year')['Y'].mean() * 100  # Percentage of weeks in crisis per year
+
+plt.figure(figsize=(15, 6))
+crisis_by_year.plot(kind='bar', color='crimson')
+plt.title('Percentage of Weeks in Crisis by Year', fontsize=16)
+plt.xlabel('Year', fontsize=14)
+plt.ylabel('Crisis Percentage (%)', fontsize=14)
+plt.grid(True, alpha=0.3)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+# Function to create comparison plots of indicators during normal vs crisis periods
+def plot_normal_vs_crisis(df, columns, n_cols=3, figsize=(18, 15)):
+    n_rows = (len(columns) + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize)
+    axes = axes.flatten()
+    
+    for i, col in enumerate(columns):
+        if i < len(axes):
+            # Normal periods
+            normal_data = df[df['Y'] == 0][col]
+            # Crisis periods
+            crisis_data = df[df['Y'] == 1][col]
+            
+            # Plot histograms
+            sns.histplot(normal_data, color='blue', alpha=0.5, label='Normal', ax=axes[i], kde=True)
+            sns.histplot(crisis_data, color='red', alpha=0.5, label='Crisis', ax=axes[i], kde=True)
+            
+            axes[i].set_title(f'{col}')
+            axes[i].legend()
+            
+    # Hide any unused subplots
+    for i in range(len(columns), len(axes)):
+        axes[i].axis('off')
+    
+    plt.tight_layout()
+    plt.show()
+
+# Select representative columns from each category to compare
+sample_cols = [
+    'VIX', 'MXUS', 'MXEU',              # Market Indices
+    'XAUBGNL', 'Cl1',                   # Commodities
+    'DXY', 'JPY',                       # Currency
+    'GT10', 'USGG2YR',                  # Bond Yields (US)
+    'GTDEM10Y', 'GTITL10YR',            # Bond Yields (EU)
+    'US0001M', 'EONIA',                 # Interest Rates
+    'LUACTRUU', 'LF98TRUU',             # Bond Indices
+    'BDIY', 'ECSURPUS'                  # Economic Indicators
+]
+
+# Plot normal vs crisis distributions
+plot_normal_vs_crisis(df, sample_cols)
+# Create time series plots for key indicators with crisis periods highlighted
+def plot_timeseries_with_crises(df, columns, n_cols=1, figsize=(18, 15)):
+    n_rows = len(columns)
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=figsize, sharex=True)
+    
+    if n_rows == 1:
+        axes = [axes]
+    
+    for i, col in enumerate(columns):
+        # Plot the time series
+        axes[i].plot(df['Data'], df[col], label=col, color='blue')
+        axes[i].set_title(f'{col} Over Time')
+        axes[i].set_ylabel(col)
+        
+        # Highlight crisis periods
+        crisis_periods = df[df['Y'] == 1]['Data'].reset_index(drop=True)
+        for j in range(len(crisis_periods)):
+            if j == 0 or (crisis_periods[j] - crisis_periods[j-1]).days > 7:  # Start of a crisis
+                crisis_start = crisis_periods[j]
+                crisis_end = crisis_periods[j]
+                # Find the end of this crisis
+                while j + 1 < len(crisis_periods) and (crisis_periods[j+1] - crisis_periods[j]).days <= 7:
+                    j += 1
+                    crisis_end = crisis_periods[j]
+                
+                # Highlight the crisis period
+                axes[i].axvspan(crisis_start, crisis_end, alpha=0.2, color='red')
+    
+    plt.tight_layout()
+    plt.show()
+
+# Select a few important indicators to visualize over time
+key_indicators = ['VIX', 'MXUS', 'GT10', 'USGG2YR', 'XAUBGNL', 'DXY']
+plot_timeseries_with_crises(df, key_indicators)
+...
