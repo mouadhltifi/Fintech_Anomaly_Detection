@@ -11,4 +11,5 @@
 /interpolated_data_daily.csv
 /interpolated_data_daily_full.csv
 /interpolated_data_daily_key.csv
-/venvdata/processed/interpolated_data_daily_full.csv
+/venv
+data/processed/interpolated_data_daily_full.csv
