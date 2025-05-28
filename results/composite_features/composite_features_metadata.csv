@@ -1,0 +1,67 @@
+feature,category,timeframe
+MXUS_bearish_divergence,Divergence,ST-LT
+MXEU_bearish_divergence,Divergence,ST-LT
+MXJP_bearish_divergence,Divergence,ST-LT
+equity_avg_logret_4w,Equity,1 month
+equity_dispersion_4w,Equity,1 month
+equity_avg_accel_4w,Equity,1 month
+equity_avg_logret_12w,Equity,3 months
+equity_dispersion_12w,Equity,3 months
+equity_avg_accel_12w,Equity,3 months
+equity_avg_logret_26w,Equity,6 months
+equity_dispersion_26w,Equity,6 months
+equity_avg_accel_26w,Equity,6 months
+yield_avg_change_4w,Bond Yield,1 month
+yield_dispersion_4w,Bond Yield,1 month
+yield_avg_change_12w,Bond Yield,3 months
+yield_dispersion_12w,Bond Yield,3 months
+yield_avg_change_26w,Bond Yield,6 months
+yield_dispersion_26w,Bond Yield,6 months
+commcurr_avg_change_4w,Commodity/Currency,1 month
+commcurr_dispersion_4w,Commodity/Currency,1 month
+commcurr_avg_change_12w,Commodity/Currency,3 months
+commcurr_dispersion_12w,Commodity/Currency,3 months
+commcurr_avg_change_26w,Commodity/Currency,6 months
+commcurr_dispersion_26w,Commodity/Currency,6 months
+BDIY_st_lt_divergence,Divergence,ST-LT
+CRY_st_lt_divergence,Divergence,ST-LT
+Cl1_st_lt_divergence,Divergence,ST-LT
+DXY_st_lt_divergence,Divergence,ST-LT
+EMUSTRUU_st_lt_divergence,Divergence,ST-LT
+GBP_st_lt_divergence,Divergence,ST-LT
+GT10_st_lt_divergence,Divergence,ST-LT
+GTGBP20Y_st_lt_divergence,Divergence,ST-LT
+GTGBP30Y_st_lt_divergence,Divergence,ST-LT
+GTITL10YR_st_lt_divergence,Divergence,ST-LT
+GTITL30YR_st_lt_divergence,Divergence,ST-LT
+GTJPY30YR_st_lt_divergence,Divergence,ST-LT
+JPY_st_lt_divergence,Divergence,ST-LT
+LF94TRUU_st_lt_divergence,Divergence,ST-LT
+LF98TRUU_st_lt_divergence,Divergence,ST-LT
+LG30TRUU_st_lt_divergence,Divergence,ST-LT
+LMBITR_st_lt_divergence,Divergence,ST-LT
+LP01TREU_st_lt_divergence,Divergence,ST-LT
+LUACTRUU_st_lt_divergence,Divergence,ST-LT
+LUMSTRUU_st_lt_divergence,Divergence,ST-LT
+MXBR_st_lt_divergence,Divergence,ST-LT
+MXCN_st_lt_divergence,Divergence,ST-LT
+MXEU_st_lt_divergence,Divergence,ST-LT
+MXIN_st_lt_divergence,Divergence,ST-LT
+MXJP_st_lt_divergence,Divergence,ST-LT
+MXRU_st_lt_divergence,Divergence,ST-LT
+MXUS_st_lt_divergence,Divergence,ST-LT
+US0001M_st_lt_divergence,Divergence,ST-LT
+USGG2YR_st_lt_divergence,Divergence,ST-LT
+USGG30YR_st_lt_divergence,Divergence,ST-LT
+VIX_st_lt_divergence,Divergence,ST-LT
+XAUBGNL_st_lt_divergence,Divergence,ST-LT
+ECSURPUS_st_lt_divergence,Divergence,ST-LT
+EONIA_st_lt_divergence,Divergence,ST-LT
+GTDEM10Y_st_lt_divergence,Divergence,ST-LT
+GTDEM2Y_st_lt_divergence,Divergence,ST-LT
+GTDEM30Y_st_lt_divergence,Divergence,ST-LT
+GTGBP2Y_st_lt_divergence,Divergence,ST-LT
+GTITL2YR_st_lt_divergence,Divergence,ST-LT
+GTJPY10YR_st_lt_divergence,Divergence,ST-LT
+GTJPY2YR_st_lt_divergence,Divergence,ST-LT
+USGG3M_st_lt_divergence,Divergence,ST-LT
