@@ -1,0 +1,311 @@
+h/* Custom styles for financial dashboard */
+
+/* Main styles */
+body {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    color: #333;
+    background-color: #f5f8fa;
+}
+
+/* Title styling */
+h1, h2, h3 {
+    color: #1e3a8a;
+    font-weight: 700;
+}
+
+/* Header area */
+.header-text h1 {
+    margin-bottom: 0;
+    color: #1e3a8a;
+    font-weight: 700;
+    font-size: 2.2rem;
+}
+
+.header-text h3 {
+    margin-top: 0;
+    color: #64748b;
+    font-weight: 400;
+    font-size: 1.2rem;
+}
+
+/* Sidebar styling */
+.sidebar-header h2 {
+    border-bottom: 2px solid #3b82f6;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: #1e3a8a;
+}
+
+.section-subheader {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 15px;
+    color: #475569;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Welcome screen */
+.welcome-container {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.welcome-container h1 {
+    color: #1e40af;
+    margin-bottom: 10px;
+}
+
+.welcome-text {
+    font-size: 1.2rem;
+    color: #64748b;
+    margin-bottom: 20px;
+}
+
+/* Financial indicators */
+.metric-container {
+    background-color: #f0f7fa;
+    border-left: 4px solid #0072b5;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 1rem;
+}
+
+/* Crisis alert boxes */
+.high-risk-alert {
+    background-color: rgba(239, 68, 68, 0.15);
+    border-left: 5px solid #ef4444;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.high-risk-alert h3 {
+    color: #ef4444 !important;
+    margin: 0;
+    font-weight: 600;
+}
+
+.medium-risk-alert {
+    background-color: rgba(245, 158, 11, 0.15);
+    border-left: 5px solid #f59e0b;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.medium-risk-alert h3 {
+    color: #f59e0b !important;
+    margin: 0;
+    font-weight: 600;
+}
+
+.low-risk-alert {
+    background-color: rgba(16, 185, 129, 0.15);
+    border-left: 5px solid #10b981;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.low-risk-alert h3 {
+    color: #10b981 !important;
+    margin: 0;
+    font-weight: 600;
+}
+
+/* Metric styling */
+.stMetric {
+    background-color: #ffffff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.metric-up {
+    color: #16a34a !important;
+}
+
+.metric-down {
+    color: #dc2626 !important;
+}
+
+/* Button styling */
+div.stButton > button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+div.stButton > button:hover {
+    background-color: #2563eb;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Tab styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background-color: #f1f5f9;
+    border-radius: 6px 6px 0 0;
+    padding: 10px 20px;
+    height: auto;
+}
+
+.stTabs [aria-selected="true"] {
+    background-color: #ffffff !important;
+    border-top: 3px solid #3b82f6 !important;
+    font-weight: 600;
+}
+
+/* Card containers */
+.card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    background-color: #f1f5f9;
+    border-radius: 6px;
+    padding: 8px 15px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+}
+
+/* Dataframe styling */
+.dataframe {
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9em;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+}
+
+.dataframe thead tr {
+    background-color: #1e3a8a;
+    color: #ffffff;
+    text-align: left;
+}
+
+.dataframe th,
+.dataframe td {
+    padding: 12px 15px;
+}
+
+.dataframe tbody tr {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dataframe tbody tr:nth-of-type(even) {
+    background-color: #f8fafc;
+}
+
+/* Download button */
+.stDownloadButton button {
+    background-color: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.stDownloadButton button:hover {
+    background-color: #15803d;
+    box-shadow: 0 4px 12px rgba(21, 128, 61, 0.2);
+    transform: translateY(-1px);
+}
+
+/* Custom select input */
+.stSelectbox [data-testid="stSelectbox"] {
+    border-radius: 6px;
+}
+
+/* Slider styling */
+.stSlider [data-testid="stThumbValue"] {
+    background-color: #3b82f6;
+}
+
+/* Footer */
+.footer {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-align: center;
+    margin-top: 50px;
+    padding-top: 15px;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Chart styling enhancement */
+.js-plotly-plot .plotly {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    padding: 15px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Multiselect styling */
+.stMultiSelect [data-baseweb="tag"] {
+    background-color: #e0f2fe;
+    border: none;
+}
+
+.stMultiSelect [data-baseweb="tag"] span {
+    color: #0369a1;
+    font-weight: 500;
+}
+
+/* Checkbox styling */
+.stCheckbox {
+    color: #334155;
+}
+
+/* Date input styling */
+.stDateInput {
+    margin-bottom: 10px;
+}
+
+.stDateInput > div {
+    border-radius: 6px;
+}
+
+/* Spinner animation */
+.stSpinner > div {
+    border-color: #3b82f6 transparent transparent !important;
+}
+
+/* Custom theme for finance */
+.finance-theme {
+    --primary-color: #0072b5;
+    --secondary-color: #1e3a8a;
+    --text-color: #333;
+    --background-color: #f9f9f9;
+    --warning-color: #dc3545;
+    --success-color: #28a745;
+} 
