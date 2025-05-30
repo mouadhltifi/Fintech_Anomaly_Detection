@@ -7,7 +7,7 @@ import numpy as np
 # Define a more vibrant and enhanced color scheme
 CHART_COLORS = {
     'background': 'rgba(0, 0, 0, 0)',  # Transparent background
-    'grid': '#f1f5f9',
+    'grid': 'rgba(241, 245, 249, 0.2)',  # Lighter grid
     'vix': '#3b82f6',  # Brighter blue
     'probability': '#ef4444',  # Vibrant red
     'threshold': '#475569',  # Dark slate
@@ -19,119 +19,75 @@ CHART_COLORS = {
     'highlight_bg': 'rgba(2, 132, 199, 0.1)'  # Light blue background
 }
 
-def create_price_prediction_chart(vix_data, predictions_df, threshold=0.5, highlight_date=None):
+# Helper function to ensure transparent backgrounds for all charts
+def setup_transparent_chart(fig):
+    """Apply transparent background settings to a plotly figure"""
+    fig.update_layout(
+        plot_bgcolor='rgba(0, 0, 0, 0)',
+        paper_bgcolor='rgba(0, 0, 0, 0)',
+        legend=dict(bgcolor='rgba(0, 0, 0, 0)'),
+    )
+    
+    # Make axis transparent
+    fig.update_xaxes(
+        gridcolor=CHART_COLORS['grid'],
+        zeroline=False,
+        showline=False,
+        linecolor='rgba(0, 0, 0, 0)'
+    )
+    
+    fig.update_yaxes(
+        gridcolor=CHART_COLORS['grid'],
+        zeroline=False,
+        showline=False,
+        linecolor='rgba(0, 0, 0, 0)'
+    )
+    
+    return fig
+
+def create_price_prediction_chart(vix_data, predictions_df, threshold=0.5, highlight_date=None, indicator_name=None):
     """
-    Create a financial chart showing VIX values and model predictions
+    Create a financial chart showing market values and model predictions, similar to Jupyter notebook style
     
     Parameters:
     -----------
     vix_data : DataFrame
-        DataFrame with VIX data
+        DataFrame with market data (can be VIX or another indicator)
     predictions_df : DataFrame
         DataFrame with model predictions
     threshold : float
-        Probability threshold for predictions
+        Probability threshold for predictions (default, may be overridden by model-specific threshold)
     highlight_date : str, optional
         A specific date to highlight with a vertical line
+    indicator_name : str, optional
+        The name of the market indicator to use in the chart title
     
     Returns:
     --------
     plotly figure
     """
-    # Find VIX column
-    vix_col = [col for col in vix_data.columns if 'vix' in col.lower()][0] if vix_data is not None else None
+    # Use model-specific threshold if available in the predictions_df
+    model_threshold = threshold
+    if predictions_df is not None and 'threshold' in predictions_df.columns:
+        model_threshold = predictions_df['threshold'].iloc[0]
     
-    # Create figure with secondary y-axis
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    # Determine the indicator name for display
+    display_name = indicator_name if indicator_name else "Market Index"
     
-    # Add VIX trace
-    if vix_data is not None and vix_col is not None:
-        fig.add_trace(
-            go.Scatter(
-                x=vix_data.index, 
-                y=vix_data[vix_col],
-                name="VIX",
-                line=dict(color=CHART_COLORS['vix'], width=2.5),
-                opacity=0.9
-            ),
-            secondary_y=False,
-        )
+    # Find the appropriate column if no indicator name is specified
+    if indicator_name is None and vix_data is not None:
+        if 'vix' in vix_data.columns:
+            indicator_name = 'vix'
+        elif vix_data.columns[0].lower().endswith('vix'):
+            indicator_name = vix_data.columns[0]
+        else:
+            # Use the first column as a fallback
+            indicator_name = vix_data.columns[0] if len(vix_data.columns) > 0 else None
     
-    # Add prediction probability trace
-    if predictions_df is not None:
-        # Add shaded area beneath probability line
-        fig.add_trace(
-            go.Scatter(
-                x=predictions_df['date'], 
-                y=predictions_df['probability'],
-                name="Crisis Probability",
-                line=dict(color=CHART_COLORS['probability'], width=3),
-                fill='tozeroy',
-                fillcolor='rgba(239, 68, 68, 0.15)',
-                opacity=0.95
-            ),
-            secondary_y=True,
-        )
-        
-        # Add horizontal line at threshold with improved styling
-        fig.add_trace(
-            go.Scatter(
-                x=[predictions_df['date'].min(), predictions_df['date'].max()],
-                y=[threshold, threshold],
-                name=f"Threshold ({threshold})",
-                line=dict(color=CHART_COLORS['threshold'], width=2, dash='dash'),
-                opacity=0.8
-            ),
-            secondary_y=True,
-        )
-        
-        # Add vertical line for the highlighted date if provided
-        if highlight_date:
-            try:
-                # Convert string date to datetime if needed
-                if isinstance(highlight_date, str):
-                    highlight_date = pd.to_datetime(highlight_date)
-                
-                # Add vertical line
-                fig.add_shape(
-                    type="line",
-                    x0=highlight_date,
-                    x1=highlight_date,
-                    y0=0,
-                    y1=1,
-                    yref="paper",
-                    line=dict(
-                        color=CHART_COLORS['highlight'],
-                        width=3,
-                        dash="solid"
-                    ),
-                )
-                
-                # Add annotation for the selected date
-                fig.add_annotation(
-                    x=highlight_date,
-                    y=1.05,
-                    yref="paper",
-                    text="Selected Date",
-                    showarrow=True,
-                    arrowhead=2,
-                    arrowsize=1,
-                    arrowwidth=2,
-                    arrowcolor=CHART_COLORS['highlight'],
-                    font=dict(
-                        family="Inter, sans-serif",
-                        size=14,
-                        color=CHART_COLORS['highlight']
-                    ),
-                    bgcolor="rgba(255, 255, 255, 0.9)",
-                    bordercolor=CHART_COLORS['highlight'],
-                    borderwidth=2,
-                    borderpad=4,
-                )
-            except Exception as e:
-                print(f"Error highlighting date: {e}")
+    # Create figure
+    fig = go.Figure()
     
-    # Add crisis periods if actual data is available
+    # First, if we have actual crisis data, add crisis period shading
     if predictions_df is not None and 'actual' in predictions_df.columns:
         # Convert binary series to continuous blocks for shading
         crisis_periods = []
@@ -152,28 +108,137 @@ def create_price_prediction_chart(vix_data, predictions_df, threshold=0.5, highl
         for start, end in crisis_periods:
             fig.add_vrect(
                 x0=start, x1=end,
-                fillcolor=CHART_COLORS['crisis_area'], 
-                opacity=0.4,  # Slightly more visible
+                fillcolor="rgba(239, 68, 68, 0.2)",  # Red for crisis periods
+                opacity=0.7,
                 layer="below", 
                 line_width=0,
                 name="Crisis Period"
             )
     
+    # Add market indicator trace
+    if vix_data is not None:
+        # If we have an indicator name, use it
+        if indicator_name and indicator_name in vix_data.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=vix_data.index, 
+                    y=vix_data[indicator_name],
+                    name=display_name,
+                    line=dict(color=CHART_COLORS['vix'], width=2.5),
+                    opacity=0.9
+                )
+            )
+        # Otherwise, try to use the first column
+        elif len(vix_data.columns) > 0:
+            fig.add_trace(
+                go.Scatter(
+                    x=vix_data.index, 
+                    y=vix_data[vix_data.columns[0]],
+                    name=display_name,
+                    line=dict(color=CHART_COLORS['vix'], width=2.5),
+                    opacity=0.9
+                )
+            )
+    
+    # Add vertical line for the current date similar to Jupyter notebook
+    if highlight_date:
+        try:
+            # Convert string date to datetime if needed
+            if isinstance(highlight_date, str):
+                highlight_date = pd.to_datetime(highlight_date)
+            
+            # Add vertical line for current date
+            fig.add_shape(
+                type="line",
+                x0=highlight_date,
+                x1=highlight_date,
+                y0=0,
+                y1=1,
+                yref="paper",
+                line=dict(
+                    color="#333333",  # Dark gray like in Jupyter notebook
+                    width=2,
+                    dash="dash"
+                ),
+            )
+            
+            # Add a prediction point marker on the current date
+            if predictions_df is not None:
+                # Find the prediction for the highlight date
+                highlight_prediction = None
+                for i, row in predictions_df.iterrows():
+                    if pd.Timestamp(row['date']) == highlight_date:
+                        highlight_prediction = row
+                        break
+                
+                if highlight_prediction is not None:
+                    # Get corresponding market value
+                    marker_y = None
+                    if vix_data is not None:
+                        if highlight_date in vix_data.index:
+                            if indicator_name and indicator_name in vix_data.columns:
+                                marker_y = vix_data.loc[highlight_date, indicator_name]
+                            elif len(vix_data.columns) > 0:
+                                marker_y = vix_data.loc[highlight_date, vix_data.columns[0]]
+                    
+                    if marker_y is not None:
+                        # Add prediction marker similar to Jupyter notebook
+                        if highlight_prediction['prediction'] == 1:
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=[highlight_date],
+                                    y=[marker_y],
+                                    mode='markers',
+                                    marker=dict(
+                                        symbol='circle',
+                                        size=15,
+                                        color='red',
+                                        line=dict(width=2, color='darkred')
+                                    ),
+                                    name="Crisis Warning",
+                                    hovertemplate=f"Crisis Warning<br>Probability: {highlight_prediction['probability']:.1%}<extra></extra>"
+                                )
+                            )
+                        else:
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=[highlight_date],
+                                    y=[marker_y],
+                                    mode='markers',
+                                    marker=dict(
+                                        symbol='circle',
+                                        size=15,
+                                        color='green',
+                                        line=dict(width=2, color='darkgreen')
+                                    ),
+                                    name="No Crisis Detected",
+                                    hovertemplate=f"No Crisis Detected<br>Probability: {highlight_prediction['probability']:.1%}<extra></extra>"
+                                )
+                            )
+        except Exception as e:
+            print(f"Error highlighting date: {e}")
+    
     # Customize layout with improved styling
     fig.update_layout(
         title={
-            'text': "Market Volatility and Crisis Probability",
+            'text': f"Market Status and Crisis Prediction",
             'y':0.95,
             'x':0.5,
             'xanchor': 'center',
             'yanchor': 'top',
-            'font': {'size': 26, 'color': CHART_COLORS['text'], 'family': 'Inter, sans-serif', 'weight': 'bold'}
+            'font': {'size': 22, 'color': CHART_COLORS['text'], 'family': 'Inter, sans-serif', 'weight': 'bold'}
         },
         xaxis=dict(
             title="Date",
             gridcolor=CHART_COLORS['grid'],
             zeroline=False,
             tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text'])
+        ),
+        yaxis=dict(
+            title=display_name, 
+            gridcolor=CHART_COLORS['grid'],
+            zeroline=False,
+            tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text']),
         ),
         plot_bgcolor=CHART_COLORS['background'],
         paper_bgcolor=CHART_COLORS['background'],
@@ -184,37 +249,15 @@ def create_price_prediction_chart(vix_data, predictions_df, threshold=0.5, highl
             xanchor="right",
             x=1,
             font=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text']),
-            bgcolor="rgba(255,255,255,0.9)",
-            bordercolor="lightgrey",
-            borderwidth=1
+            bgcolor="rgba(255,255,255,0.0)"
         ),
         margin=dict(l=10, r=10, t=80, b=10),
-        height=600,
-        hovermode="x unified"
+        height=400,
+        hovermode="closest"
     )
     
-    # Update y-axes with improved styling
-    fig.update_yaxes(
-        title_text="VIX Value", 
-        secondary_y=False,
-        gridcolor=CHART_COLORS['grid'],
-        zeroline=False,
-        tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text']),
-        titlefont=dict(family="Inter, sans-serif", size=15, color=CHART_COLORS['text'])
-    )
-    
-    fig.update_yaxes(
-        title_text="Crisis Probability", 
-        secondary_y=True, 
-        range=[0, 1],
-        gridcolor=CHART_COLORS['grid'],
-        zeroline=False,
-        tickformat=".0%",
-        tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text']),
-        titlefont=dict(family="Inter, sans-serif", size=15, color=CHART_COLORS['text'])
-    )
-    
-    return fig
+    # Apply transparent background settings
+    return setup_transparent_chart(fig)
 
 def create_model_comparison_chart(model_manager, start_date, end_date, models_to_compare):
     """
@@ -238,6 +281,9 @@ def create_model_comparison_chart(model_manager, start_date, end_date, models_to
     # Generate a color scale for multiple models
     colors = px.colors.qualitative.Bold
     
+    # Keep track of thresholds for each model
+    model_thresholds = {}
+    
     # Get predictions for each model
     for i, model_name in enumerate(models_to_compare):
         model_info = model_manager.get_model_by_name(model_name)
@@ -258,6 +304,26 @@ def create_model_comparison_chart(model_manager, start_date, end_date, models_to
                         line=dict(color=color, width=2.5),
                         mode='lines',
                         hovertemplate='%{y:.2%} probability on %{x|%b %d, %Y}<extra>' + short_name + '</extra>'
+                    )
+                )
+                
+                # Store model's threshold
+                model_threshold = 0.5  # Default
+                if 'threshold' in predictions.columns:
+                    model_threshold = predictions['threshold'].iloc[0]
+                elif 'metadata' in model_info and 'threshold' in model_info['metadata']:
+                    model_threshold = model_info['metadata']['threshold']
+                    
+                model_thresholds[short_name] = model_threshold
+                
+                # Add threshold line for each model
+                fig.add_trace(
+                    go.Scatter(
+                        x=[pd.to_datetime(start_date), pd.to_datetime(end_date)],
+                        y=[model_threshold, model_threshold],
+                        name=f"{short_name} Threshold ({model_threshold:.2f})",
+                        line=dict(color=color, width=1.5, dash='dash'),
+                        opacity=0.7
                     )
                 )
                 
@@ -288,17 +354,6 @@ def create_model_comparison_chart(model_manager, start_date, end_date, models_to
                             line_width=0,
                             name="Crisis Period"
                         )
-    
-    # Add threshold line
-    fig.add_trace(
-        go.Scatter(
-            x=[pd.to_datetime(start_date), pd.to_datetime(end_date)],
-            y=[0.5, 0.5],
-            name="Threshold (0.5)",
-            line=dict(color=CHART_COLORS['threshold'], width=1.5, dash='dash'),
-            opacity=0.7
-        )
-    )
     
     # Customize layout with improved styling
     fig.update_layout(
@@ -340,7 +395,8 @@ def create_model_comparison_chart(model_manager, start_date, end_date, models_to
         hovermode="x unified"
     )
     
-    return fig
+    # Apply transparent background settings
+    return setup_transparent_chart(fig)
 
 def create_heatmap_periods(predictions_df, freq='M'):
     """
@@ -424,7 +480,8 @@ def create_heatmap_periods(predictions_df, freq='M'):
         xaxis=dict(tickfont=dict(size=12, family="Inter, sans-serif"))
     )
     
-    return fig
+    # Apply transparent background settings
+    return setup_transparent_chart(fig)
 
 def create_financial_dashboard(vix_data, predictions_df, highlight_date=None):
     """
@@ -753,7 +810,8 @@ def create_financial_dashboard(vix_data, predictions_df, highlight_date=None):
         row=3, col=1
     )
     
-    return fig
+    # Apply transparent background settings
+    return setup_transparent_chart(fig)
 
 def create_single_day_prediction_card(prediction_data):
     """
@@ -779,7 +837,7 @@ def create_single_day_prediction_card(prediction_data):
             font=dict(size=18, color=CHART_COLORS['text'], family="Inter, sans-serif")
         )
         fig.update_layout(height=350, paper_bgcolor=CHART_COLORS['background'])
-        return fig
+        return setup_transparent_chart(fig)
     
     # Extract prediction data
     date_str = prediction_data.get('date', 'Unknown Date')
@@ -909,4 +967,146 @@ def create_single_day_prediction_card(prediction_data):
         ]
     )
     
-    return fig 
+    # Apply transparent background settings
+    return setup_transparent_chart(fig)
+
+def create_probability_trend_chart(data):
+    """
+    Create a probability trend chart similar to the Jupyter notebook version
+    
+    Parameters:
+    -----------
+    data : dict
+        Dictionary with dates, probabilities, highlight_date and threshold
+        
+    Returns:
+    --------
+    plotly figure
+    """
+    # Create figure
+    fig = go.Figure()
+    
+    # Extract data
+    dates = data['dates']
+    probabilities = data['probabilities']
+    highlight_date = data.get('highlight_date')
+    threshold = data.get('threshold', 0.5)  # Get threshold from data or default to 0.5
+    
+    # Add the main probability trace
+    fig.add_trace(
+        go.Scatter(
+            x=dates,
+            y=probabilities,
+            name="Crisis Probability",
+            line=dict(color=CHART_COLORS['probability'], width=2.5),
+            fill='tozeroy',
+            fillcolor='rgba(239, 68, 68, 0.1)',
+            opacity=0.9,
+            hovertemplate='%{y:.2%} probability on %{x|%b %d, %Y}<extra></extra>'
+        )
+    )
+    
+    # Add horizontal line at threshold
+    fig.add_trace(
+        go.Scatter(
+            x=[dates.min(), dates.max()],
+            y=[threshold, threshold],
+            name=f"Crisis Threshold ({threshold:.2f})",
+            line=dict(color=CHART_COLORS['threshold'], width=1.5, dash='dash'),
+            opacity=0.8
+        )
+    )
+    
+    # Add vertical line for the highlighted date if provided
+    if highlight_date:
+        try:
+            # Convert string date to datetime if needed
+            if isinstance(highlight_date, str):
+                highlight_date = pd.to_datetime(highlight_date)
+            
+            # Add vertical line
+            fig.add_shape(
+                type="line",
+                x0=highlight_date,
+                x1=highlight_date,
+                y0=0,
+                y1=1,
+                yref="paper",
+                line=dict(
+                    color=CHART_COLORS['highlight'],
+                    width=3,
+                    dash="solid"
+                ),
+            )
+            
+            # Add annotation for the selected date
+            fig.add_annotation(
+                x=highlight_date,
+                y=1.05,
+                yref="paper",
+                text="Current Date",
+                showarrow=True,
+                arrowhead=2,
+                arrowsize=1,
+                arrowwidth=2,
+                arrowcolor=CHART_COLORS['highlight'],
+                font=dict(
+                    family="Inter, sans-serif",
+                    size=14,
+                    color=CHART_COLORS['highlight']
+                ),
+                bgcolor="rgba(255,255,255,0.9)",
+                bordercolor=CHART_COLORS['highlight'],
+                borderwidth=2,
+                borderpad=4,
+            )
+        except Exception as e:
+            print(f"Error highlighting date: {e}")
+    
+    # Shade areas above threshold
+    high_prob_mask = np.array(probabilities) >= threshold
+    for i in range(1, len(dates)):
+        if high_prob_mask[i-1]:
+            fig.add_vrect(
+                x0=dates[i-1], 
+                x1=dates[i],
+                fillcolor="rgba(245, 158, 11, 0.15)",  # Light yellow for high probability areas
+                opacity=0.6,
+                layer="below", 
+                line_width=0
+            )
+    
+    # Customize layout
+    fig.update_layout(
+        title=None,
+        xaxis=dict(
+            title="Date",
+            gridcolor=CHART_COLORS['grid'],
+            zeroline=False,
+            tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text'])
+        ),
+        yaxis=dict(
+            title="Crisis Probability",
+            range=[0, 1],
+            gridcolor=CHART_COLORS['grid'],
+            zeroline=False,
+            tickformat=".0%",
+            tickfont=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text'])
+        ),
+        plot_bgcolor=CHART_COLORS['background'],
+        paper_bgcolor=CHART_COLORS['background'],
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(family="Inter, sans-serif", size=13, color=CHART_COLORS['text']),
+            bgcolor="rgba(255,255,255,0.0)"
+        ),
+        margin=dict(l=10, r=10, t=10, b=10),
+        height=250
+    )
+    
+    # Apply transparent background settings
+    return setup_transparent_chart(fig) 

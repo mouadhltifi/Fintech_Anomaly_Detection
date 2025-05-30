@@ -87,7 +87,7 @@ class ModelManager:
                 
             except Exception as e:
                 print(f"Error loading model from {model_dir}: {str(e)}")
-    
+                
     def load_datasets(self, data_dir='/Users/mouadh/Fintech_Projects/Business_Case_4/data/processed/'):
         """Load all required datasets for predictions"""
         datasets_needed = set()
@@ -114,7 +114,132 @@ class ModelManager:
                     print(f"  Loaded {dataset_name} with shape {self.datasets[dataset_name].shape}")
                 except Exception as e:
                     print(f"  Error loading {dataset_name}: {str(e)}")
-    
+        
+        # After loading datasets, optimize thresholds for each model
+        self._optimize_model_thresholds()
+        
+    def _optimize_model_thresholds(self):
+        """
+        Determine optimal threshold for each model based on validation data
+        This method should be called after datasets are loaded
+        """
+        print("Optimizing thresholds for each model...")
+        
+        for i, model_info in enumerate(self.models_info):
+            dataset_name = model_info['dataset_name']
+            if dataset_name not in self.datasets:
+                print(f"Cannot optimize threshold for {model_info['display_name']}: Dataset {dataset_name} not loaded")
+                continue
+                
+            # Get the dataset
+            df = self.datasets[dataset_name]
+            
+            # Check if dataset has target variable
+            if 'Y' not in df.columns:
+                print(f"Cannot optimize threshold for {model_info['display_name']}: No target variable in dataset")
+                continue
+            
+            # Use data from 2000 to 2018 as validation set
+            val_data = df.loc['2000-01-01':'2018-12-31']
+            if val_data.empty:
+                print(f"No validation data available for {model_info['display_name']}")
+                continue
+            
+            # Extract features and target
+            X = val_data.drop(columns=['Y'] + (['pre_crisis'] if 'pre_crisis' in val_data.columns else []))
+            y = val_data['Y']
+            
+            # Filter to relevant features if specified
+            features = model_info['features']
+            if features and len(features) > 0:
+                common_features = [feat for feat in features if feat in X.columns]
+                if len(common_features) == 0:
+                    print(f"No common features for {model_info['display_name']}")
+                    continue
+                X = X[common_features]
+            
+            # Apply preprocessing
+            try:
+                # Apply imputer if available
+                imputer = model_info.get('imputer')
+                if imputer is not None:
+                    X = pd.DataFrame(
+                        imputer.transform(X), 
+                        columns=X.columns,
+                        index=X.index
+                    )
+                
+                # Apply scaler if available
+                scaler = model_info.get('scaler')
+                if scaler is not None:
+                    X = pd.DataFrame(
+                        scaler.transform(X), 
+                        columns=X.columns,
+                        index=X.index
+                    )
+            except Exception as e:
+                print(f"Error in preprocessing for {model_info['display_name']}: {str(e)}")
+                continue
+            
+            # Get predictions
+            model = model_info['model']
+            
+            try:
+                if hasattr(model, 'predict_proba'):
+                    y_proba = model.predict_proba(X)[:, 1]
+                else:
+                    # Skip models that don't output probabilities
+                    print(f"Model {model_info['display_name']} doesn't output probabilities, skipping threshold optimization")
+                    continue
+            except Exception as e:
+                print(f"Error predicting with {model_info['display_name']}: {str(e)}")
+                continue
+            
+            # Find optimal threshold based on the model's optimization metric
+            try:
+                from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score, accuracy_score
+                
+                # Get the metric the model was optimized for
+                metric_name = model_info['metadata'].get('metric', 'f1_score')
+                
+                # Function to evaluate threshold
+                def evaluate_threshold(threshold):
+                    preds = (y_proba >= threshold).astype(int)
+                    if metric_name == 'f1_score':
+                        return f1_score(y, preds)
+                    elif metric_name == 'precision':
+                        return precision_score(y, preds)
+                    elif metric_name == 'recall':
+                        return recall_score(y, preds)
+                    elif metric_name == 'roc_auc':
+                        # ROC AUC doesn't depend on threshold, so optimize F1 instead
+                        return f1_score(y, preds)
+                    elif metric_name == 'accuracy':
+                        return accuracy_score(y, preds)
+                    else:
+                        return f1_score(y, preds)
+                
+                # Try different thresholds
+                thresholds = np.linspace(0.01, 0.99, 99)
+                scores = [evaluate_threshold(t) for t in thresholds]
+                
+                # Get best threshold
+                best_idx = np.argmax(scores)
+                best_threshold = thresholds[best_idx]
+                best_score = scores[best_idx]
+                
+                # Set the threshold in model metadata
+                model_info['metadata']['threshold'] = float(best_threshold)
+                
+                print(f"Optimized threshold for {model_info['display_name']}: {best_threshold:.4f} (Score: {best_score:.4f})")
+                
+            except Exception as e:
+                print(f"Error optimizing threshold for {model_info['display_name']}: {str(e)}")
+                # Use default threshold or one from metadata if optimization fails
+                if 'threshold' not in model_info['metadata']:
+                    model_info['metadata']['threshold'] = 0.5
+                    print(f"Using default threshold 0.5")
+
     def get_model_by_name(self, display_name):
         """Get model info by display name"""
         for model_info in self.models_info:
@@ -192,10 +317,23 @@ class ModelManager:
         
         # Make predictions
         model = model_info['model']
+        
+        # Get model-specific threshold from metadata
+        # Use the thresholds from the model metadata
+        model_type = model_info.get('model_type', '')
+        model_metric = model_info['metadata'].get('metric', '')
+        
+        # Default threshold is 0.5
+        threshold = 0.5
+        
+        # Use specific thresholds from model metadata
+        if 'threshold' in model_info['metadata']:
+            threshold = model_info['metadata']['threshold']
+            
         try:
             if hasattr(model, 'predict_proba'):
                 probas = model.predict_proba(X)[:, 1]
-                preds = (probas >= 0.5).astype(int)
+                preds = (probas >= threshold).astype(int)
             else:
                 preds = model.predict(X)
                 probas = preds.astype(float)
@@ -205,6 +343,7 @@ class ModelManager:
                 'date': X.index,
                 'prediction': preds,
                 'probability': probas,
+                'threshold': [threshold] * len(X),  # Add the threshold used
                 'actual': df_slice['Y'] if 'Y' in df_slice.columns else np.nan
             })
             
@@ -251,7 +390,58 @@ class ModelManager:
         
         print("VIX data not found in any dataset")
         return None
-
+    
+    def get_market_data(self, start_date, end_date, indicator_name=None):
+        """
+        Get market data for the selected date range and indicator
+        
+        Parameters:
+        -----------
+        start_date : str
+            Start date
+        end_date : str
+            End date
+        indicator_name : str, optional
+            Specific indicator column name to get
+            
+        Returns:
+        --------
+        DataFrame
+            DataFrame with market data
+        """
+        # Set up a market data collection if we don't have one yet
+        if 'market_data' not in self.datasets:
+            self.datasets['market_data'] = pd.DataFrame()
+            
+            # Collect common market indicators from all datasets
+            for dataset_name, df in self.datasets.items():
+                if dataset_name != 'market_data':
+                    for col in df.columns:
+                        col_lower = col.lower()
+                        if any(term in col_lower for term in ['vix', 'index', 'price', 'market', 'sp500', 's&p', 'dji', 'djia', 'nasdaq']):
+                            self.datasets['market_data'][col] = df[col]
+            
+            # Add Y column if available in any dataset
+            for dataset_name, df in self.datasets.items():
+                if 'Y' in df.columns:
+                    self.datasets['market_data']['Y'] = df['Y']
+                    break
+        
+        # Get the data slice for the date range
+        df_slice = self.datasets['market_data'][start_date:end_date]
+        
+        # If a specific indicator is requested, filter to just that column (if it exists)
+        if indicator_name and indicator_name in df_slice.columns:
+            return df_slice[[indicator_name] + (['Y'] if 'Y' in df_slice.columns else [])]
+        elif indicator_name:
+            # Try to find similar column
+            similar_cols = [col for col in df_slice.columns if indicator_name.lower() in col.lower()]
+            if similar_cols:
+                return df_slice[similar_cols + (['Y'] if 'Y' in df_slice.columns else [])]
+        
+        # If no specific indicator or not found, return all market data
+        return df_slice
+    
     def predict_for_day(self, model_info, specific_date):
         """
         Make a prediction using a specific model for a single date
@@ -339,28 +529,57 @@ class ModelManager:
             model = model_info['model']
             if hasattr(model, 'predict_proba'):
                 proba = model.predict_proba(X)[0, 1]  # Get probability of class 1
-                pred = int(proba >= 0.5)
+                # Get model-specific threshold from metadata if available, otherwise use default 0.5
+                threshold = model_info['metadata'].get('threshold', 0.5)
+                pred = int(proba >= threshold)
             else:
                 pred = int(model.predict(X)[0])
                 proba = float(pred)
+                
+            # Store the threshold used for this prediction
+            threshold_used = model_info['metadata'].get('threshold', 0.5)
             
             # Get actual value if available
             actual = float(data_point['Y'].iloc[0]) if 'Y' in data_point.columns else None
             
-            # Get VIX value if available
-            vix_value = None
+            # Get market indicator values
+            # First collect various market indicators
+            market_indicators = {}
+            
+            # Check for VIX
             vix_cols = [col for col in data_point.columns if 'vix' in col.lower()]
             if vix_cols:
-                vix_value = float(data_point[vix_cols[0]].iloc[0])
+                market_indicators['vix'] = float(data_point[vix_cols[0]].iloc[0])
+            
+            # Check for other important indicators
+            for indicator_type in ['index', 'price', 'sp500', 'dji', 'nasdaq']:
+                indicator_cols = [col for col in data_point.columns 
+                                 if indicator_type in col.lower() and col not in vix_cols]
+                if indicator_cols:
+                    market_indicators[indicator_type] = float(data_point[indicator_cols[0]].iloc[0])
+            
+            # Now also check market_data collection for more indicators
+            if 'market_data' in self.datasets:
+                market_df = self.datasets['market_data']
+                if specific_ts in market_df.index:
+                    market_row = market_df.loc[specific_ts]
+                    for col in market_row.index:
+                        if col != 'Y' and not pd.isna(market_row[col]):
+                            market_indicators[col] = float(market_row[col])
             
             # Return prediction info
-            return {
+            result = {
                 'date': data_point.index[0].strftime('%Y-%m-%d'),
                 'prediction': pred,
                 'probability': proba,
                 'actual': actual,
-                'vix': vix_value
+                'threshold': threshold_used,
             }
+            
+            # Add all market indicators to the result
+            result.update(market_indicators)
+            
+            return result
             
         except Exception as e:
             print(f"Error making prediction for specific date: {str(e)}")

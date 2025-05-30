@@ -17,7 +17,8 @@ from dashboard.utils.visualizations import (
     create_model_comparison_chart, 
     create_heatmap_periods,
     create_financial_dashboard,
-    create_single_day_prediction_card
+    create_single_day_prediction_card,
+    create_probability_trend_chart
 )
 
 # Set page config
@@ -27,6 +28,65 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# After setting page config, add this custom CSS to fix white backgrounds
+st.markdown("""
+<style>
+    /* Fix white backgrounds behind tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: transparent !important;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: auto;
+        white-space: pre-wrap;
+        background-color: transparent !important;
+        border-radius: 4px 4px 0 0;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-bottom: 2px solid #4682B4;
+    }
+    
+    /* Fix white backgrounds behind plotly charts */
+    .js-plotly-plot .plotly {
+        background-color: transparent !important;
+    }
+    
+    /* Remove white background from all st elements */
+    .stButton button, div.stButton > button:first-child,
+    .stTextInput > div > div > input,
+    .stDateInput > div > div > input,
+    .stSelectbox > div > div,
+    .stMultiselect > div > div,
+    div[data-testid="stTickBarMin"], div[data-testid="stTickBarMax"], 
+    div[data-testid="stTickBar"], div[data-testid="stTickBarDiv"],
+    div[data-testid="stExpander"] {
+        background-color: transparent !important;
+    }
+    
+    /* Better contrast for text on dark mode */
+    .dark-mode p, .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4, .dark-mode h5, .dark-mode h6 {
+        color: rgba(250, 250, 250, 0.95) !important;
+    }
+    
+    /* Make metrics transparent */
+    div[data-testid="metric-container"] {
+        background-color: transparent !important;
+    }
+    
+    /* Remove background from all cards and containers */
+    .element-container, .stDataFrame, 
+    div[data-testid="stVerticalBlock"] > div {
+        background-color: transparent !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # Function to load CSS
 def local_css(file_name):
@@ -165,7 +225,27 @@ with st.sidebar:
                         data_dir = '/Users/mouadh/Fintech_Projects/Business_Case_4/data/processed/'
                         st.session_state.model_manager.load_datasets(data_dir=data_dir)
                         st.session_state.datasets_loaded = True
+                    
                     st.success(f"✅ Loaded {len(st.session_state.model_manager.datasets)} datasets")
+    
+    # Define thresholds_info variable at a higher scope
+    thresholds_info = ""
+    if st.session_state.model_manager is not None and st.session_state.datasets_loaded:
+        # Prepare thresholds info
+        thresholds_info = ""
+        for model_info in st.session_state.model_manager.models_info:
+            threshold = model_info['metadata'].get('threshold', 0.5)
+            model_type = model_info['model_type']
+            metric = model_info['metadata'].get('metric', 'Unknown')
+            thresholds_info += f"- {model_type} ({metric}): {threshold:.4f}\n"
+        
+        # Show the thresholds in an expander in the sidebar
+        with st.sidebar.expander("📊 Model Thresholds"):
+            st.markdown("""
+            The following thresholds were automatically calculated for each model 
+            based on optimizing their respective metrics on validation data:
+            """)
+            st.code(thresholds_info)
     
     # Only show the rest if models and datasets are loaded
     if st.session_state.model_manager is not None and st.session_state.datasets_loaded:
@@ -201,51 +281,38 @@ with st.sidebar:
         </style>
         """, unsafe_allow_html=True)
         
-        # Date selection with improved styling
-        with st.expander("📅 Time Period", expanded=True):
-            st.markdown("""<div class="section-subheader">Select analysis period</div>""", unsafe_allow_html=True)
+        # Specific date selection - replaces the time period range
+        with st.expander("📅 Simulation Date", expanded=True):
+            st.markdown("""<div class="section-subheader">Select a specific date to analyze</div>""", unsafe_allow_html=True)
             
-            # Preset date ranges for better UX
-            preset_ranges = {
-                "Last 1 Year": (datetime.date.today() - datetime.timedelta(days=365), datetime.date.today()),
-                "Last 3 Years": (datetime.date.today() - datetime.timedelta(days=3*365), datetime.date.today()),
-                "2020 COVID Crisis": (datetime.date(2020, 1, 1), datetime.date(2020, 12, 31)),
-                "2008 Financial Crisis": (datetime.date(2007, 1, 1), datetime.date(2009, 12, 31)),
-                "Custom Range": None
-            }
+            # Default date (near the middle of available data)
+            available_dates = pd.date_range(start='2000-01-01', end=datetime.date.today(), freq='B')
+            default_date = available_dates[len(available_dates)//2].date()
             
-            selected_preset = st.selectbox("Preset Periods", list(preset_ranges.keys()))
+            specific_date = st.date_input(
+                "Simulation Date",
+                value=default_date,
+                min_value=datetime.date(2000, 1, 1),
+                max_value=datetime.date.today()
+            )
             
-            if selected_preset == "Custom Range":
-                # Allow custom date selection
-                start_date = st.date_input(
-                    "Start Date",
-                    value=datetime.date(2019, 1, 1),
-                    min_value=datetime.date(2000, 1, 1),
-                    max_value=datetime.date.today()
-                )
-                
-                end_date = st.date_input(
-                    "End Date",
-                    value=datetime.date.today(),
-                    min_value=start_date,
-                    max_value=datetime.date.today()
-                )
-            else:
-                # Use preset dates
-                start_date, end_date = preset_ranges[selected_preset]
+            # Use this specific date as both start (for loading data) and end (cutoff for analysis)
+            # This simulates having data only up to this point
+            earliest_date = specific_date - datetime.timedelta(days=365*3)  # 3 years before selected date for context
+            start_date = earliest_date
+            end_date = specific_date
             
             # Convert to string format for model manager
             start_date_str = start_date.strftime('%Y-%m-%d')
             end_date_str = end_date.strftime('%Y-%m-%d')
+            specific_date_str = specific_date.strftime('%Y-%m-%d')
             
-            st.caption(f"Analyzing data from {start_date_str} to {end_date_str}")
+            st.caption(f"Analyzing data up to {specific_date_str}")
         
-        # Store date range in session state
-        if 'selected_date_range' not in st.session_state:
-            st.session_state.selected_date_range = (start_date, end_date, start_date_str, end_date_str)
-        else:
-            st.session_state.selected_date_range = (start_date, end_date, start_date_str, end_date_str)
+        # Store date info in session state
+        st.session_state.selected_date_range = (start_date, end_date, start_date_str, end_date_str)
+        st.session_state.specific_date = specific_date
+        st.session_state.specific_date_str = specific_date_str
         
         # Model selection with improved styling
         with st.expander("🤖 Model Selection", expanded=True):
@@ -285,58 +352,55 @@ with st.sidebar:
         with st.expander("📊 Display Settings", expanded=True):
             st.markdown("""<div class="section-subheader">Customize visualization</div>""", unsafe_allow_html=True)
             
-            show_heatmap = st.checkbox("Show Crisis Probability Heatmap", value=True)
+            # Market indicator selection - NEW FEATURE
+            available_indicators = []
             
-            col1, col2 = st.columns(2)
-            with col1:
-                heatmap_freq = st.selectbox(
-                    "Heatmap Frequency",
-                    options=["Monthly", "Quarterly", "Yearly"],
-                    index=0
-                )
+            # Find available market indicators across all datasets
+            for dataset_name in st.session_state.model_manager.datasets:
+                dataset = st.session_state.model_manager.datasets[dataset_name]
+                
+                # Look for common market indicators in dataset columns
+                for col in dataset.columns:
+                    col_lower = col.lower()
+                    if any(term in col_lower for term in ['vix', 'index', 'price', 'market', 'sp500', 's&p', 'dji', 'djia', 'nasdaq']):
+                        if col not in available_indicators:
+                            available_indicators.append(col)
             
-            with col2:
-                threshold = st.slider("Crisis Threshold", min_value=0.0, max_value=1.0, value=0.5, step=0.05)
+            # Default to VIX if available
+            default_index = next((i for i, name in enumerate(available_indicators) if 'vix' in name.lower()), 0)
             
-            freq_map = {"Monthly": "M", "Quarterly": "Q", "Yearly": "Y"}
+            selected_indicator = st.selectbox(
+                "Market Indicator to Plot",
+                options=available_indicators,
+                index=min(default_index, len(available_indicators)-1) if available_indicators else 0,
+                help="Select which market indicator to display in the chart"
+            )
             
             show_full_dashboard = st.checkbox("Show Full Dashboard", value=True)
-        
-    # Help information in accordion
-    with st.expander("ℹ️ Help"):
-        st.markdown("""
-        ### How to use this dashboard
-        
-        1. Load models and datasets first
-        2. Select a date range for analysis
-        3. Choose models to analyze
-        4. Compare predictions across models
-        
-        ### Interpreting Results
-        
-        - **Crisis Probability**: Values closer to 1.0 indicate higher risk
-        - **Red Shaded Areas**: Historical crisis periods
-        - **Threshold Line**: The cutoff for crisis prediction (default: 0.5)
-        
-        For more help, see the documentation or contact support.
-        """)
-    
-    # About section in sidebar
-    with st.expander("📝 About"):
-        st.markdown("""
-        ### Financial Crisis EWS
-        
-        This dashboard visualizes predictions from machine learning models
-        trained to detect financial crisis events based on market indicators.
-        
-        The models analyze patterns in financial data to estimate the probability
-        of market stress in the near future.
-        
-        Version 2.0 | Last updated: May 2025
-        """)
 
 # Main content area with tabs
 if st.session_state.model_manager is not None and st.session_state.datasets_loaded:
+    # Add container to limit width
+    max_width_style = """
+    <style>
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Make sidebar wider */
+        [data-testid="stSidebar"] {
+            min-width: 330px !important;
+            width: 330px !important;
+        }
+    </style>
+    """
+    st.markdown(max_width_style, unsafe_allow_html=True)
+    
+    # Start main container
+    st.markdown('<div class="main-container">', unsafe_allow_html=True)
+    
     tab1, tab2, tab3, tab4 = st.tabs(["📈 Dashboard", "🔍 Model Details", "⚖️ Comparison", "📊 Data Explorer"])
     
     with tab1:
@@ -345,161 +409,312 @@ if st.session_state.model_manager is not None and st.session_state.datasets_load
             # Get model info
             model_info = st.session_state.model_manager.get_model_by_name(selected_model)
             
-            # Extract date range from session state
+            # Extract date range from session state and specific date
             start_date, end_date, start_date_str, end_date_str = st.session_state.selected_date_range
+            specific_date = st.session_state.specific_date
+            specific_date_str = st.session_state.specific_date_str
             
-            # Specific day selector (in the main dashboard)
-            st.markdown('<div class="section-header">Select Specific Day for Prediction</div>', unsafe_allow_html=True)
-            date_selector_container = st.container()
+            # Display current simulation date prominently
+            st.markdown(f"""
+            <div style="text-align: center; padding: 15px; background-color: rgba(2, 132, 199, 0.1); border-radius: 5px; margin-bottom: 20px; border-left: 5px solid #0284c7;">
+                <h2 style="margin: 0; color: #0284c7;">Financial Crisis Early Warning Simulation</h2>
+                <p style="font-size: 1.2rem; margin: 5px 0 0 0;">Date: <strong>{specific_date_str}</strong></p>
+                <p style="font-size: 0.9rem; margin: 0;">Analysis based on data available up to this date</p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            with date_selector_container:
-                col1, col2 = st.columns([2, 2])
-                with col1:
-                    # Default to the middle of the selected range if possible
-                    default_specific_date = start_date + (end_date - start_date) // 2
-                    specific_date = st.date_input(
-                        "Select Date Within Range",
-                        value=default_specific_date,
-                        min_value=start_date,
-                        max_value=end_date,
-                        key="specific_date_picker",
-                        help="Select a specific date for detailed crisis prediction"
-                    )
-                    specific_date_str = specific_date.strftime('%Y-%m-%d')
-                
-                with col2:
-                    st.markdown("")  # Empty space for alignment
-                    # Choose style based on dark/light mode
-                    if st.session_state.dark_mode:
-                        notification_class = "date-notification-dark"
-                    else:
-                        notification_class = "date-notification-light"
-                        
-                    st.markdown(f"""
-                    <div class="{notification_class}" style="margin-top: 34px; padding: 10px; border-left: 4px solid #0284c7; background-color: rgba(2, 132, 199, 0.1);">
-                        <p style="color: {'#38bdf8' if st.session_state.dark_mode else '#0284c7'}; font-size: 15px; font-weight: bold; margin: 0;">
-                            Getting detailed prediction for: <span style="color: {'#f0f0f0' if st.session_state.dark_mode else '#334155'};">{specific_date_str}</span>
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            # Get range predictions
-            predictions = st.session_state.model_manager.predict(model_info, start_date_str, end_date_str)
+            # Get range predictions (up to specific_date)
+            predictions = st.session_state.model_manager.predict(model_info, start_date_str, specific_date_str)
             
             # Get specific day prediction
             specific_prediction = st.session_state.model_manager.predict_for_day(model_info, specific_date_str)
             
-            # Get VIX data
-            vix_data = st.session_state.model_manager.get_vix_data(start_date_str, end_date_str)
-            
-            # Display specific day prediction
-            if specific_prediction:
-                day_prediction_fig = create_single_day_prediction_card(specific_prediction)
-                st.plotly_chart(day_prediction_fig, use_container_width=True, config={'displayModeBar': False})
-            else:
-                st.error("No data available for the selected date. Try selecting a different date.")
-            
-            # Divider
-            st.markdown("""
-            <hr style="height:2px; border:none; background: linear-gradient(to right, transparent, #d1d5db, transparent);">
-            """, unsafe_allow_html=True)
-            
-            # Display range predictions
-            st.markdown('<div class="section-header">📈 Date Range Analysis</div>', unsafe_allow_html=True)
-            if predictions is not None:
-                # Show status with improved styling
-                latest_pred = predictions.iloc[-1] if len(predictions) > 0 else None
+            # Get model-specific threshold
+            model_threshold = 0.5  # Default fallback
+            if specific_prediction and 'threshold' in specific_prediction:
+                model_threshold = specific_prediction['threshold']
+            elif model_info and 'metadata' in model_info and 'threshold' in model_info['metadata']:
+                model_threshold = model_info['metadata']['threshold']
                 
-                if latest_pred is not None:
-                    latest_date = latest_pred['date'].strftime('%Y-%m-%d')
-                    latest_prob = latest_pred['probability']
-                    
-                    # Choose alert style based on dark/light mode
-                    high_risk_class = "high-risk-alert-dark" if st.session_state.dark_mode else "high-risk-alert"
-                    med_risk_class = "medium-risk-alert-dark" if st.session_state.dark_mode else "medium-risk-alert"
-                    low_risk_class = "low-risk-alert-dark" if st.session_state.dark_mode else "low-risk-alert"
-                    
-                    # Create alert based on crisis probability
-                    alert_container = st.container()
-                    with alert_container:
-                        if latest_prob >= 0.7:
-                            st.markdown(f"""
-                            <div class="{high_risk_class}">
-                                <h3>⚠️ HIGH RISK ALERT</h3>
-                                <p>Crisis probability is at <strong>{latest_prob:.2%}</strong> as of {latest_date}</p>
+            # Get market indicator data
+            if selected_indicator:
+                market_data = st.session_state.model_manager.get_market_data(start_date_str, specific_date_str, selected_indicator)
+            else:
+                # Fall back to VIX data if no indicator selected
+                market_data = st.session_state.model_manager.get_vix_data(start_date_str, specific_date_str)
+            
+            if predictions is not None and specific_prediction:
+                # Create a layout with 3 vertical sections similar to Jupyter notebook
+                
+                # 1. Main chart with market data and crisis indicator
+                st.markdown('<div class="section-header">Market Status and Crisis Prediction</div>', unsafe_allow_html=True)
+                
+                # Get actual values and status
+                actual_value = None
+                verification_text = ""
+                if 'actual' in predictions.columns and specific_prediction['actual'] is not None:
+                    actual_value = int(specific_prediction['actual'])
+                    if specific_prediction['prediction'] == 1 and actual_value == 1:
+                        verification_text = "✅ True Positive - Correctly Identified Crisis"
+                    elif specific_prediction['prediction'] == 1 and actual_value == 0:
+                        verification_text = "❌ False Positive - False Alarm"
+                    elif specific_prediction['prediction'] == 0 and actual_value == 0:
+                        verification_text = "✅ True Negative - Correctly Identified No Crisis"
+                    else:  # pred == 0 and actual == 1
+                        verification_text = "❌ False Negative - Missed Crisis"
+                
+                # Show crisis prediction status
+                crisis_status_container = st.container()
+                with crisis_status_container:
+                    cols = st.columns([2, 3])
+                    with cols[0]:
+                        if specific_prediction['prediction'] == 1:
+                            st.markdown("""
+                            <div style="background-color: rgba(239, 68, 68, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #ef4444;">
+                                <h3 style="margin: 0; color: #ef4444;">⚠️ CRISIS WARNING!</h3>
+                                <p style="margin: 5px 0 0 0;">Probability: {:.1f}% (Model Threshold: {:.0f}%)</p>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em;">{}</p>
                             </div>
-                            """, unsafe_allow_html=True)
-                        elif latest_prob >= 0.3:
-                            st.markdown(f"""
-                            <div class="{med_risk_class}">
-                                <h3>⚠️ ELEVATED RISK</h3>
-                                <p>Crisis probability is at <strong>{latest_prob:.2%}</strong> as of {latest_date}</p>
-                            </div>
-                            """, unsafe_allow_html=True)
+                            """.format(
+                                specific_prediction['probability'] * 100,
+                                model_threshold * 100,
+                                verification_text
+                            ), unsafe_allow_html=True)
                         else:
-                            st.markdown(f"""
-                            <div class="{low_risk_class}">
-                                <h3>✓ STABLE OUTLOOK</h3>
-                                <p>Crisis probability is low at <strong>{latest_prob:.2%}</strong> as of {latest_date}</p>
+                            st.markdown("""
+                            <div style="background-color: rgba(16, 185, 129, 0.2); padding: 15px; border-radius: 5px; border-left: 5px solid #10b981;">
+                                <h3 style="margin: 0; color: #10b981;">✓ NO CRISIS DETECTED</h3>
+                                <p style="margin: 5px 0 0 0;">Probability: {:.1f}% (Model Threshold: {:.0f}%)</p>
+                                <p style="margin: 5px 0 0 0; font-size: 0.9em;">{}</p>
                             </div>
-                            """, unsafe_allow_html=True)
+                            """.format(
+                                specific_prediction['probability'] * 100,
+                                model_threshold * 100,
+                                verification_text
+                            ), unsafe_allow_html=True)
+                            
+                    with cols[1]:
+                        # Show key metrics for the specific date
+                        st.markdown("### Key Market Indicators")
+                        
+                        # Get data for the specific date
+                        date_data = {}
+                        
+                        # Add selected indicator if available
+                        if market_data is not None and specific_date in market_data.index:
+                            for col in market_data.columns:
+                                date_data[col] = market_data.loc[specific_date, col]
+                        
+                        # Get some additional metrics from the dataset if available
+                        for feature_set_name in st.session_state.model_manager.datasets:
+                            df = st.session_state.model_manager.datasets[feature_set_name]
+                            if specific_date in df.index:
+                                row = df.loc[specific_date]
+                                
+                                # Look for important indicators
+                                for col in df.columns:
+                                    if any(indicator in col.lower() for indicator in ['ted', 'spread', 'volatil', 'yield', 'return']):
+                                        if col not in date_data and col not in ['Y', 'pre_crisis']:
+                                            date_data[col] = row[col]
+                        
+                        # Display top indicators as metrics
+                        metric_cols = st.columns(2)
+                        for i, (name, value) in enumerate(sorted(date_data.items(), key=lambda x: abs(x[1]), reverse=True)[:4]):
+                            with metric_cols[i % 2]:
+                                # Format the value appropriately
+                                if abs(value) < 0.1:
+                                    formatted_value = f"{value:.4f}"
+                                elif abs(value) < 1:
+                                    formatted_value = f"{value:.3f}"
+                                elif abs(value) < 10:
+                                    formatted_value = f"{value:.2f}"
+                                else:
+                                    formatted_value = f"{value:.1f}"
+                                    
+                                st.metric(
+                                    label=name,
+                                    value=formatted_value
+                                )
                 
-                # Display full dashboard with enhanced visuals
-                if show_full_dashboard and vix_data is not None:
-                    dashboard_fig = create_financial_dashboard(vix_data, predictions, highlight_date=specific_date)
-                    st.plotly_chart(dashboard_fig, use_container_width=True, config={'displayModeBar': False})
-                else:
-                    # Show simpler chart with improved styling
-                    chart_fig = create_price_prediction_chart(vix_data, predictions, threshold=threshold, highlight_date=specific_date)
-                    st.plotly_chart(chart_fig, use_container_width=True, config={'displayModeBar': False})
+                # Add model predictions from all selected models
+                st.markdown('<div class="section-header">All Model Predictions</div>', unsafe_allow_html=True)
+                st.markdown("### Model Predictions for this Date")
+                
+                # Get predictions from all selected models for specific date
+                model_predictions = []
+                
+                for model_name in compare_models:
+                    curr_model_info = st.session_state.model_manager.get_model_by_name(model_name)
+                    if curr_model_info:
+                        # Get prediction for specific date
+                        curr_prediction = st.session_state.model_manager.predict_for_day(curr_model_info, specific_date_str)
+                        
+                        if curr_prediction is not None:
+                            # Extract model type and dataset
+                            model_type = curr_model_info['model_type']
+                            dataset = curr_model_info.get('dataset_name', '')
+                            
+                            # Get threshold from model metadata or use default
+                            model_threshold = curr_model_info['metadata'].get('threshold', 0.5)
+                            
+                            # Create a simpler model name
+                            simple_name = f"{model_type}_{dataset[:3]}"
+                            
+                            model_predictions.append({
+                                'Model': model_name,
+                                'ShortName': simple_name,
+                                'Type': model_type,
+                                'Dataset': dataset,
+                                'Probability': curr_prediction['probability'],
+                                'Prediction': curr_prediction['prediction'],
+                                'Threshold': curr_prediction.get('threshold', model_threshold)
+                            })
+                
+                # Show main chart with market data and crisis prediction
+                chart_fig = create_price_prediction_chart(
+                    market_data, 
+                    predictions, 
+                    threshold=model_threshold,  # Use model-specific threshold
+                    highlight_date=specific_date, 
+                    indicator_name=selected_indicator
+                )
+                st.plotly_chart(chart_fig, use_container_width=True, config={'displayModeBar': False})
+                
+                if model_predictions:
+                    # Create a styled HTML table similar to Jupyter notebook
+                    header = "<table style='width:100%; border-collapse:collapse;'>"
+                    header += "<tr style='border-bottom:1px solid #ddd; background-color:rgba(241, 245, 249, 0.3);'>"
+                    header += "<th style='text-align:left; padding:8px;'>Model</th>"
+                    header += "<th style='text-align:center; padding:8px;'>Vote</th>"
+                    header += "<th style='text-align:center; padding:8px;'>Probability</th>"
+                    header += "<th style='text-align:center; padding:8px;'>Threshold</th>"
+                    header += "<th style='text-align:center; padding:8px;'>Type</th>"
+                    header += "<th style='text-align:left; padding:8px;'>Dataset</th>"
+                    header += "</tr>"
+                    
+                    rows = ""
+                    for model in model_predictions:
+                        vote_icon = "⚠️" if model['Prediction'] == 1 else "✓"
+                        vote_color = "#ef4444" if model['Prediction'] == 1 else "#10b981"
+                        
+                        # Determine color for probability
+                        if model['Probability'] < 0.3:
+                            prob_color = "#10b981"  # Green
+                        elif model['Probability'] < 0.7:
+                            prob_color = "#f59e0b"  # Yellow/Orange
+                        else:
+                            prob_color = "#ef4444"  # Red
+                        
+                        # Get model threshold
+                        threshold = model['Threshold']
+                        
+                        rows += f"<tr style='border-bottom:1px solid #ddd;'>"
+                        rows += f"<td style='padding:8px;'>{model['ShortName']}</td>"
+                        rows += f"<td style='text-align:center; padding:8px; color:{vote_color};'>{vote_icon}</td>"
+                        rows += f"<td style='text-align:center; padding:8px; color:{prob_color};'>{model['Probability']:.3f} ({int(model['Probability']*100)}%)</td>"
+                        rows += f"<td style='text-align:center; padding:8px;'>{threshold:.3f}</td>"
+                        rows += f"<td style='text-align:center; padding:8px;'>{model['Type']}</td>"
+                        rows += f"<td style='padding:8px;'>{model['Dataset']}</td>"
+                        rows += "</tr>"
+                    
+                    footer = "</table>"
+                    
+                    # Display the table
+                    st.markdown(header + rows + footer, unsafe_allow_html=True)
+                    
+                    # Create a bar chart showing all model probabilities
+                    st.markdown("### Model Probability Comparison")
+                    
+                    model_df = pd.DataFrame(model_predictions).sort_values(by='Probability', ascending=False)
+                    
+                    # Create horizontal bar chart for probabilities
+                    prob_fig = go.Figure()
+                    
+                    # Add probability bars
+                    prob_fig.add_trace(go.Bar(
+                        y=model_df['ShortName'],
+                        x=model_df['Probability'],
+                        orientation='h',
+                        name='Probability',
+                        marker=dict(
+                            color=[
+                                '#10b981' if p < 0.3 else '#f59e0b' if p < 0.7 else '#ef4444' 
+                                for p in model_df['Probability']
+                            ]
+                        ),
+                        hovertemplate='%{y}: %{x:.1%}'
+                    ))
+                    
+                    # For each model, add a threshold marker
+                    for i, row in model_df.iterrows():
+                        prob_fig.add_trace(go.Scatter(
+                            x=[row['Threshold']],
+                            y=[row['ShortName']],
+                            mode='markers',
+                            marker=dict(
+                                symbol='line-ns',
+                                size=12,
+                                color='black',
+                                line=dict(width=2)
+                            ),
+                            name=f"Threshold ({row['ShortName']})" if i == 0 else None,
+                            showlegend=i == 0,  # Only show legend for first marker
+                            hovertemplate=f"{row['ShortName']} Threshold: {row['Threshold']:.2f}"
+                        ))
+                        
+                    # Update layout
+                    prob_fig.update_layout(
+                        title=None,
+                        xaxis=dict(
+                            title="Crisis Probability & Model Thresholds",
+                            tickformat='.0%',
+                            range=[0, 1]
+                        ),
+                        yaxis=dict(
+                            title=None
+                        ),
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        height=max(250, len(model_df) * 30),  # Dynamic height based on number of models
+                        margin=dict(l=10, r=10, t=10, b=10),
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1,
+                        ),
+                        hovermode="closest"
+                    )
+                    
+                    st.plotly_chart(prob_fig, use_container_width=True, config={'displayModeBar': False})
+                
+                # Instead of the heatmap, show historical probability trend
+                st.markdown('<div class="section-header">Historical Crisis Probability</div>', unsafe_allow_html=True)
+                
+                # Create monthly resampled probabilities for a smoother trend line
+                # This will only include data up to the selected date
+                monthly_probs = predictions.set_index('date')['probability'].resample('M').mean().reset_index()
+                
+                # Use model-specific threshold for the trend chart
+                trend_threshold = model_threshold  # Use the same threshold we set earlier
+                
+                monthly_with_highlight = {
+                    'dates': monthly_probs['date'],
+                    'probabilities': monthly_probs['probability'],
+                    'highlight_date': specific_date,
+                    'threshold': trend_threshold
+                }
+                
+                # Create custom probability trend chart
+                trend_fig = create_probability_trend_chart(monthly_with_highlight)
+                st.plotly_chart(trend_fig, use_container_width=True, config={'displayModeBar': False})
+                
             else:
-                st.error("No predictions available for the selected date range and model. Try a different date range.")
-            
-            # Show heatmap below if selected (full width)
-            if show_heatmap and predictions is not None:
-                st.markdown(f'<div class="section-header">{heatmap_freq} Crisis Probability Heatmap</div>', unsafe_allow_html=True)
-                heatmap_fig = create_heatmap_periods(predictions, freq=freq_map[heatmap_freq])
-                st.plotly_chart(heatmap_fig, use_container_width=True, config={'displayModeBar': False})
-            
-            # Add crisis probability KPI metrics in a row (full width)
-            if predictions is not None:
-                st.markdown('<div class="section-header">Key Risk Metrics</div>', unsafe_allow_html=True)
-                
-                metric_cols = st.columns(4)
-                
-                with metric_cols[0]:
-                    avg_prob = predictions['probability'].mean()
-                    st.metric(
-                        label="Average Risk",
-                        value=f"{avg_prob:.2%}",
-                        delta=f"{avg_prob - 0.5:.2%}" if avg_prob != 0.5 else None,
-                        delta_color="inverse"
-                    )
-                
-                with metric_cols[1]:
-                    max_prob = predictions['probability'].max()
-                    st.metric(
-                        label="Peak Risk",
-                        value=f"{max_prob:.2%}"
-                    )
-                
-                with metric_cols[2]:
-                    days_above = (predictions['probability'] > threshold).sum()
-                    pct_above = days_above / len(predictions) * 100 if len(predictions) > 0 else 0
-                    st.metric(
-                        label=f"Days Above {threshold}",
-                        value=f"{days_above}",
-                        delta=f"{pct_above:.1f}% of period"
-                    )
-                
-                with metric_cols[3]:
-                    current_trend = predictions['probability'].iloc[-5:].mean() - predictions['probability'].iloc[-10:-5].mean() if len(predictions) >= 10 else 0
-                    st.metric(
-                        label="Recent Trend",
-                        value="Increasing" if current_trend > 0.01 else "Decreasing" if current_trend < -0.01 else "Stable",
-                        delta=f"{current_trend:.2%}",
-                        delta_color="inverse"
-                    )
+                st.error("No predictions available for the selected date and model. Try selecting a different date.")
+    
+    # Close main container
+    st.markdown('</div>', unsafe_allow_html=True)
     
     with tab2:
         # Model details tab
@@ -589,10 +804,17 @@ if st.session_state.model_manager is not None and st.session_state.datasets_load
                     predictions = st.session_state.model_manager.predict(model_info, start_date_str, end_date_str)
                     
                     if predictions is not None:
+                        # Get model-specific threshold
+                        model_threshold = 0.5  # Default
+                        if 'threshold' in predictions.columns:
+                            model_threshold = predictions['threshold'].iloc[0]
+                        elif 'metadata' in model_info and 'threshold' in model_info['metadata']:
+                            model_threshold = model_info['metadata']['threshold']
+                        
                         # Calculate period metrics
                         avg_prob = predictions['probability'].mean()
                         max_prob = predictions['probability'].max()
-                        days_above = (predictions['probability'] > threshold).sum()
+                        days_above = (predictions['probability'] > model_threshold).sum()
                         pct_above = days_above / len(predictions) * 100 if len(predictions) > 0 else 0
                         
                         # Get trained metrics
@@ -608,9 +830,10 @@ if st.session_state.model_manager is not None and st.session_state.datasets_load
                             'Dataset': dataset,
                             'Best Metric': best_metric,
                             'Best Score': best_score,
+                            'Threshold': model_threshold,
                             'Avg Probability': avg_prob,
                             'Max Probability': max_prob,
-                            f'Days Above {threshold}': days_above,
+                            f'Days Above Threshold': days_above,
                             '% Time Above Threshold': pct_above
                         })
             
@@ -723,7 +946,7 @@ else:
 # Footer
 st.markdown("""
 <div class="footer">
-    <p>Financial Crisis Early Warning System | Developed by Financial AI Team | © 2025</p>
+    <p>Financial Crisis Early Warning System | Fintech Final Delivery | Group 9 | © 2025</p>
 </div>
 """, unsafe_allow_html=True)
 
