@@ -122,6 +122,8 @@ class ModelManager:
         """
         Determine optimal threshold for each model based on validation data
         This method should be called after datasets are loaded
+        
+        Additionally calculates all performance metrics for each model and stores them in the model metadata
         """
         print("Optimizing thresholds for each model...")
         
@@ -195,43 +197,105 @@ class ModelManager:
                 print(f"Error predicting with {model_info['display_name']}: {str(e)}")
                 continue
             
-            # Find optimal threshold based on the model's optimization metric
+            # Calculate metrics for multiple thresholds
             try:
-                from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score, accuracy_score
+                from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
                 
                 # Get the metric the model was optimized for
                 metric_name = model_info['metadata'].get('metric', 'f1_score')
                 
-                # Function to evaluate threshold
-                def evaluate_threshold(threshold):
-                    preds = (y_proba >= threshold).astype(int)
-                    if metric_name == 'f1_score':
-                        return f1_score(y, preds)
-                    elif metric_name == 'precision':
-                        return precision_score(y, preds)
-                    elif metric_name == 'recall':
-                        return recall_score(y, preds)
-                    elif metric_name == 'roc_auc':
-                        # ROC AUC doesn't depend on threshold, so optimize F1 instead
-                        return f1_score(y, preds)
-                    elif metric_name == 'accuracy':
-                        return accuracy_score(y, preds)
-                    else:
-                        return f1_score(y, preds)
-                
                 # Try different thresholds
                 thresholds = np.linspace(0.01, 0.99, 99)
-                scores = [evaluate_threshold(t) for t in thresholds]
                 
-                # Get best threshold
-                best_idx = np.argmax(scores)
+                # Store all metrics for each threshold
+                all_metrics = {
+                    'thresholds': thresholds,
+                    'accuracy': [],
+                    'precision': [],
+                    'recall': [],
+                    'f1_score': [],
+                }
+                
+                # Calculate roc_auc once since it doesn't depend on threshold
+                roc_auc = roc_auc_score(y, y_proba) if len(np.unique(y)) > 1 else 0
+                
+                # Calculate metrics for each threshold
+                for threshold in thresholds:
+                    preds = (y_proba >= threshold).astype(int)
+                    all_metrics['accuracy'].append(accuracy_score(y, preds))
+                    all_metrics['precision'].append(precision_score(y, preds, zero_division=0))
+                    all_metrics['recall'].append(recall_score(y, preds, zero_division=0))
+                    all_metrics['f1_score'].append(f1_score(y, preds, zero_division=0))
+                
+                # Find best threshold according to the model's primary metric
+                best_idx = np.argmax(all_metrics[metric_name])
                 best_threshold = thresholds[best_idx]
-                best_score = scores[best_idx]
                 
-                # Set the threshold in model metadata
+                # Store all metrics at the best threshold in the model metadata
                 model_info['metadata']['threshold'] = float(best_threshold)
+                model_info['metadata']['accuracy'] = float(all_metrics['accuracy'][best_idx])
+                model_info['metadata']['precision'] = float(all_metrics['precision'][best_idx])
+                model_info['metadata']['recall'] = float(all_metrics['recall'][best_idx])
+                model_info['metadata']['f1_score'] = float(all_metrics['f1_score'][best_idx])
+                model_info['metadata']['roc_auc'] = float(roc_auc)
                 
-                print(f"Optimized threshold for {model_info['display_name']}: {best_threshold:.4f} (Score: {best_score:.4f})")
+                # Also evaluate on test data (2019-2023) to see out-of-sample performance
+                try:
+                    test_data = df.loc['2019-01-01':'2023-12-31'].copy()
+                    
+                    if not test_data.empty and 'Y' in test_data.columns:
+                        # Process test data
+                        X_test = test_data.drop(columns=['Y'] + (['pre_crisis'] if 'pre_crisis' in test_data.columns else []))
+                        y_test = test_data['Y']
+                        
+                        # Filter features
+                        if features and len(features) > 0:
+                            X_test = X_test[common_features].copy()
+                            
+                        # Apply preprocessing
+                        if imputer is not None:
+                            X_test = pd.DataFrame(
+                                imputer.transform(X_test),
+                                columns=X_test.columns,
+                                index=X_test.index
+                            )
+                            
+                        if scaler is not None:
+                            X_test = pd.DataFrame(
+                                scaler.transform(X_test),
+                                columns=X_test.columns,
+                                index=X_test.index
+                            )
+                        
+                        # Get predictions on test data
+                        y_test_proba = model.predict_proba(X_test)[:, 1]
+                        y_test_pred = (y_test_proba >= best_threshold).astype(int)
+                        
+                        # Calculate and store test metrics
+                        model_info['metadata']['test_metrics'] = {
+                            'accuracy': float(accuracy_score(y_test, y_test_pred)),
+                            'precision': float(precision_score(y_test, y_test_pred, zero_division=0)),
+                            'recall': float(recall_score(y_test, y_test_pred, zero_division=0)),
+                            'f1_score': float(f1_score(y_test, y_test_pred, zero_division=0)),
+                            'roc_auc': float(roc_auc_score(y_test, y_test_proba) if len(np.unique(y_test)) > 1 else 0)
+                        }
+                except Exception as e:
+                    print(f"Error evaluating on test data for {model_info['display_name']}: {str(e)}")
+                
+                print(f"Optimized threshold for {model_info['display_name']}: {best_threshold:.4f}")
+                print(f"  Metrics at this threshold: Acc={all_metrics['accuracy'][best_idx]:.4f}, "
+                      f"Prec={all_metrics['precision'][best_idx]:.4f}, "
+                      f"Rec={all_metrics['recall'][best_idx]:.4f}, "
+                      f"F1={all_metrics['f1_score'][best_idx]:.4f}, "
+                      f"AUC={roc_auc:.4f}")
+                
+                if 'test_metrics' in model_info['metadata']:
+                    test_metrics = model_info['metadata']['test_metrics']
+                    print(f"  Test metrics: Acc={test_metrics['accuracy']:.4f}, "
+                          f"Prec={test_metrics['precision']:.4f}, "
+                          f"Rec={test_metrics['recall']:.4f}, "
+                          f"F1={test_metrics['f1_score']:.4f}, "
+                          f"AUC={test_metrics['roc_auc']:.4f}")
                 
             except Exception as e:
                 print(f"Error optimizing threshold for {model_info['display_name']}: {str(e)}")

@@ -757,28 +757,69 @@ if st.session_state.model_manager is not None and st.session_state.datasets_load
             
             # Show model performance metrics if available
             st.markdown("### Performance Metrics")
-            metrics_cols = st.columns(5)
             
-            metrics = {
-                'accuracy': model_info['metadata'].get('metrics', {}).get('accuracy', None),
-                'precision': model_info['metadata'].get('metrics', {}).get('precision', None),
-                'recall': model_info['metadata'].get('metrics', {}).get('recall', None),
-                'f1_score': model_info['metadata'].get('metrics', {}).get('f1_score', None),
-                'roc_auc': model_info['metadata'].get('metrics', {}).get('roc_auc', None)
-            }
+            # Create tabs for validation and test metrics
+            metrics_tabs = st.tabs(["Validation Metrics", "Test Metrics"])
             
-            for i, (metric_name, metric_value) in enumerate(metrics.items()):
-                with metrics_cols[i]:
-                    if metric_value is not None:
-                        st.metric(
-                            label=metric_name.replace('_', ' ').title(),
-                            value=f"{metric_value:.4f}"
-                        )
-                    else:
-                        st.metric(
-                            label=metric_name.replace('_', ' ').title(),
-                            value="N/A"
-                        )
+            with metrics_tabs[0]:
+                st.caption("Metrics on validation data (2000-2018), used for threshold optimization")
+                metrics_cols = st.columns(5)
+                
+                # Get validation metrics (stored at the top level of metadata)
+                metrics = {
+                    'accuracy': model_info['metadata'].get('accuracy', None),
+                    'precision': model_info['metadata'].get('precision', None),
+                    'recall': model_info['metadata'].get('recall', None),
+                    'f1_score': model_info['metadata'].get('f1_score', None),
+                    'roc_auc': model_info['metadata'].get('roc_auc', None)
+                }
+                
+                # If we have a score, use it for the corresponding metric
+                if 'metric' in model_info['metadata'] and 'score' in model_info['metadata']:
+                    metric_name = model_info['metadata']['metric']
+                    if metric_name in metrics and metrics[metric_name] is None:
+                        metrics[metric_name] = model_info['metadata']['score']
+                
+                # Display the validation metrics
+                for i, (metric_name, metric_value) in enumerate(metrics.items()):
+                    with metrics_cols[i]:
+                        if metric_value is not None:
+                            st.metric(
+                                label=metric_name.replace('_', ' ').title(),
+                                value=f"{metric_value:.4f}"
+                            )
+                        else:
+                            st.metric(
+                                label=metric_name.replace('_', ' ').title(),
+                                value="N/A"
+                            )
+                
+                # Show optimized threshold
+                st.info(f"Optimized threshold: {model_info['metadata'].get('threshold', 0.5):.4f}")
+            
+            with metrics_tabs[1]:
+                st.caption("Metrics on test data (2019-2023), true out-of-sample performance")
+                test_metrics_cols = st.columns(5)
+                
+                # Get test metrics (stored in nested test_metrics dict)
+                test_metrics = model_info['metadata'].get('test_metrics', {})
+                
+                if test_metrics:
+                    for i, metric_name in enumerate(['accuracy', 'precision', 'recall', 'f1_score', 'roc_auc']):
+                        with test_metrics_cols[i]:
+                            metric_value = test_metrics.get(metric_name)
+                            if metric_value is not None:
+                                st.metric(
+                                    label=metric_name.replace('_', ' ').title(),
+                                    value=f"{metric_value:.4f}"
+                                )
+                            else:
+                                st.metric(
+                                    label=metric_name.replace('_', ' ').title(),
+                                    value="N/A"
+                                )
+                else:
+                    st.warning("Test metrics are not available for this model.")
     
     with tab3:
         # Comparison tab
@@ -796,50 +837,78 @@ if st.session_state.model_manager is not None and st.session_state.datasets_load
             # Create a metric comparison table
             st.subheader("Model Metrics Comparison")
             
-            metrics_df = []
-            for model_name in compare_models:
-                model_info = st.session_state.model_manager.get_model_by_name(model_name)
-                if model_info:
-                    # Get predictions for this time period
-                    predictions = st.session_state.model_manager.predict(model_info, start_date_str, end_date_str)
-                    
-                    if predictions is not None:
-                        # Get model-specific threshold
-                        model_threshold = 0.5  # Default
-                        if 'threshold' in predictions.columns:
-                            model_threshold = predictions['threshold'].iloc[0]
-                        elif 'metadata' in model_info and 'threshold' in model_info['metadata']:
-                            model_threshold = model_info['metadata']['threshold']
-                        
-                        # Calculate period metrics
-                        avg_prob = predictions['probability'].mean()
-                        max_prob = predictions['probability'].max()
-                        days_above = (predictions['probability'] > model_threshold).sum()
-                        pct_above = days_above / len(predictions) * 100 if len(predictions) > 0 else 0
-                        
-                        # Get trained metrics
+            metrics_comparison_tabs = st.tabs(["Validation Metrics", "Test Metrics"])
+            
+            with metrics_comparison_tabs[0]:
+                st.caption("Validation metrics (2000-2018), used to determine optimal thresholds")
+                validation_metrics_df = []
+                
+                for model_name in compare_models:
+                    model_info = st.session_state.model_manager.get_model_by_name(model_name)
+                    if model_info:
+                        # Get the model's metadata
+                        metadata = model_info['metadata']
                         model_type = model_info['model_type']
                         dataset = model_info['dataset_name']
-                        best_metric = model_info['metadata'].get('metric', 'Unknown')
-                        best_score = model_info['metadata'].get('score', 'Unknown')
+                        threshold = metadata.get('threshold', 0.5)
                         
-                        # Add to comparison dataframe
-                        metrics_df.append({
+                        # Get metrics from metadata
+                        metrics_row = {
                             'Model': model_name,
                             'Type': model_type,
                             'Dataset': dataset,
-                            'Best Metric': best_metric,
-                            'Best Score': best_score,
-                            'Threshold': model_threshold,
-                            'Avg Probability': avg_prob,
-                            'Max Probability': max_prob,
-                            f'Days Above Threshold': days_above,
-                            '% Time Above Threshold': pct_above
-                        })
+                            'Threshold': threshold,
+                            'Accuracy': metadata.get('accuracy'),
+                            'Precision': metadata.get('precision'),
+                            'Recall': metadata.get('recall'),
+                            'F1 Score': metadata.get('f1_score'),
+                            'ROC AUC': metadata.get('roc_auc')
+                        }
+                        
+                        validation_metrics_df.append(metrics_row)
+                
+                if validation_metrics_df:
+                    validation_comparison_table = pd.DataFrame(validation_metrics_df)
+                    st.dataframe(validation_comparison_table, hide_index=True, use_container_width=True)
+                else:
+                    st.info("No validation metrics available for the selected models.")
             
-            if metrics_df:
-                comparison_table = pd.DataFrame(metrics_df)
-                st.dataframe(comparison_table, hide_index=True, use_container_width=True)
+            with metrics_comparison_tabs[1]:
+                st.caption("Test metrics (2019-2023), representing true out-of-sample performance")
+                test_metrics_df = []
+                
+                for model_name in compare_models:
+                    model_info = st.session_state.model_manager.get_model_by_name(model_name)
+                    if model_info:
+                        # Get the model's metadata
+                        metadata = model_info['metadata']
+                        model_type = model_info['model_type']
+                        dataset = model_info['dataset_name']
+                        threshold = metadata.get('threshold', 0.5)
+                        
+                        # Get test metrics from metadata
+                        test_metrics = metadata.get('test_metrics', {})
+                        
+                        if test_metrics:
+                            metrics_row = {
+                                'Model': model_name,
+                                'Type': model_type,
+                                'Dataset': dataset,
+                                'Threshold': threshold,
+                                'Accuracy': test_metrics.get('accuracy'),
+                                'Precision': test_metrics.get('precision'),
+                                'Recall': test_metrics.get('recall'),
+                                'F1 Score': test_metrics.get('f1_score'),
+                                'ROC AUC': test_metrics.get('roc_auc')
+                            }
+                            
+                            test_metrics_df.append(metrics_row)
+                
+                if test_metrics_df:
+                    test_comparison_table = pd.DataFrame(test_metrics_df)
+                    st.dataframe(test_comparison_table, hide_index=True, use_container_width=True)
+                else:
+                    st.info("No test metrics available for the selected models.")
         else:
             st.info("Please select at least two models in the sidebar to compare them.")
     
