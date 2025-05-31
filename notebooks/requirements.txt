@@ -1,0 +1,16 @@
+pandas
+numpy
+matplotlib
+seaborn
+scipy
+statsmodels
+pywt
+scikit-learn
+imbalanced-learn
+matplotlib-venn
+scikeras
+lightgbm
+xgboost
+tensorflow
+tqdm
+joblib
