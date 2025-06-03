@@ -44,6 +44,8 @@ The Jupyter notebooks contain the complete analytical process:
 
 The Streamlit dashboard provides a user-friendly interface for:
 
+![Dashboard Screenshot](./Dashboard_screenshot.png)
+
 - **Market Stress Monitoring**: Visual indicators of current market conditions
 - **Model Selection**: Choose between different optimized models based on specific metrics (precision, recall, F1, AUC)
 - **Probability Timeline**: Track crisis probability trends over multiple timeframes
@@ -108,7 +110,3 @@ The dataset contains financial market indicators from 2000 to 2021, including:
    bash run_dashboard.sh
    ```
 3. Access the dashboard at http://localhost:8501
-
-## Contact
-
-For questions or further information, please reach out to the project maintainer. 
