@@ -90,9 +90,9 @@ The dataset contains financial market indicators from 2000 to 2021, including:
    # On macOS/Linux
    source venv/bin/activate
    ```
-4. Install required packages:
+4. Install required packages for notebooks:
    ```
-   pip install -r requirements.txt
+   pip install -r notebooks/requirements.txt
    ```
 5. Launch Jupyter:
    ```
@@ -105,8 +105,19 @@ The dataset contains financial market indicators from 2000 to 2021, including:
    ```
    cd dashboard
    ```
-2. Run the dashboard setup script:
+2. Create a separate virtual environment for the dashboard (optional):
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On macOS/Linux
+   # or
+   venv\Scripts\activate  # On Windows
+   ```
+3. Install dashboard requirements:
+   ```
+   pip install -r requirements.txt
+   ```
+4. Run the dashboard setup script:
    ```
    bash run_dashboard.sh
    ```
-3. Access the dashboard at http://localhost:8501
+5. Access the dashboard at http://localhost:8501
